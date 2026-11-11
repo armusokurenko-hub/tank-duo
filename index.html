@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="description" content="TANK DUO — безкоштовні браузерні танчики на двох онлайн. Захищайте базу разом!">
+  <title>TANK DUO — танчики онлайн на двох</title>
+  <style>
+    :root { color-scheme:dark; --bg:#090e18; --panel:#111a2a; --line:#263447; --soft:#899aaf; --white:#f4f7fc; --yellow:#f6d66e; --mint:#a6e8b3; --red:#f58288; }
+    *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;min-height:100vh;color:var(--white);font:500 14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(ellipse 70% 35% at 50% -10%,#1a3150 0%,transparent 85%),var(--bg)}
+    button,input{font:inherit}button{cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible,input:focus-visible{outline:3px solid #a6e8b3;outline-offset:2px}
+    .wrap{max-width:1100px;margin:auto;padding:24px 24px 52px}.header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:22px}.brand{display:flex;gap:12px;align-items:center}.mark{display:grid;place-items:center;width:47px;height:47px;border-radius:13px;background:#f6d66e;color:#122030;font-size:24px;box-shadow:0 6px 22px #f6d66e22}.brand-title{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-weight:900;letter-spacing:2px;font-size:22px;line-height:1.1}.brand-sub{font-size:12px;color:var(--soft);margin-top:2px}.header-right{display:flex;align-items:center;gap:10px}.online-pill{border:1px solid #314957;border-radius:99px;padding:7px 12px;color:#b4d8c5;background:#14232a;white-space:nowrap;font-size:12px}.online-pill:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#78da99;box-shadow:0 0 10px #78da99;margin-right:7px}.icon-btn{background:#1a2638;border:1px solid #33435a;color:#dce5f0;border-radius:10px;min-width:39px;height:38px}.icon-btn:hover{background:#26344a}.layout{display:grid;grid-template-columns:minmax(0,680px) minmax(240px,1fr);gap:20px;align-items:start}.game-column{min-width:0}.stage{padding:12px;border:1px solid #314157;background:#111a29;border-radius:19px;box-shadow:0 15px 50px #0005}.stage-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 4px 11px}.stage-top strong{letter-spacing:1.3px;font-family:ui-monospace,Consolas,monospace;font-size:12px}.stage-top span{font-size:12px;color:var(--soft)}.board{position:relative;aspect-ratio:1;background:#121a23;overflow:hidden;border-radius:10px;border:2px solid #394960}.board:after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 28px #0004}canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-action:none}.overlay{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:18px;background:#080e19ca;backdrop-filter:blur(5px);overflow-y:auto}.overlay[hidden]{display:none}.menu{width:min(100%,390px);padding:27px;background:linear-gradient(155deg,#1a2841,#111d2e);border:1px solid #465875;border-radius:18px;box-shadow:0 18px 70px #0008;text-align:center}.menu-icon{font-size:34px;display:block;margin-bottom:8px}.menu h1,.menu h2{font-size:28px;line-height:1.16;letter-spacing:-.8px;margin:0 0 10px;font-weight:850}.menu p{color:#aebfd1;margin:0 0 21px;font-size:14px}.menu small{color:#91a2b8}.menu .secondary{margin-top:11px}.menu .split{display:flex;gap:8px;margin-top:10px}.menu .split button{flex:1}.primary,.secondary,.ghost{border-radius:11px;padding:12px 16px;font-weight:750;line-height:1.3;border:1px solid transparent;transition:filter .15s,background .15s}.primary{background:#f4d478;color:#1b2330;box-shadow:0 5px 22px #f4d47819}.primary:hover{filter:brightness(1.07)}.secondary{background:#26354a;color:#f3f6fa;border-color:#40506a}.secondary:hover{background:#344761}.ghost{background:transparent;border-color:#4c607b;color:#d7e3f4}.ghost:hover{background:#283a50}.wide{width:100%}.room-input{width:100%;border:1px solid #506582;border-radius:11px;background:#0d192a;color:#f7f9fc;padding:13px 10px;letter-spacing:6px;text-align:center;font:850 23px/1 ui-monospace,Consolas,monospace;margin:5px 0 11px;text-transform:uppercase}.room-code{font:900 36px/1.2 ui-monospace,Consolas,monospace;letter-spacing:8px;color:#f7d77d;background:#0c1523;border:1px dashed #6a6480;border-radius:12px;margin:13px 0 16px;padding:18px 8px;user-select:all}.error{color:#ffb2b2;font-size:13px;min-height:20px;margin:5px 0 0}.tips{margin-top:11px;text-align:center;font-size:12px;color:#9bacc0}.side{display:grid;gap:14px}.card{padding:19px;background:linear-gradient(152deg,#162236,#101a2a);border:1px solid #30415a;border-radius:16px}.card-label{color:#95a8c0;text-transform:uppercase;letter-spacing:1.5px;font-size:11px;font-weight:800;margin-bottom:14px}.stat-row{display:flex;align-items:center;justify-content:space-between;gap:15px;margin:12px 0}.stat-row:last-child{margin-bottom:0}.stat-value{font:900 19px/1.3 ui-monospace,Consolas,monospace;color:#f4f7fc}.stat-name{color:#b4c2d1}.separator{height:1px;background:#2b3c51;margin:14px 0}.player{display:flex;justify-content:space-between;align-items:center;gap:7px;padding:10px;border-radius:10px;margin-top:9px;background:#0d1929}.player-left{display:flex;align-items:center;gap:9px;font-size:13px}.color-dot{width:10px;height:10px;border-radius:3px;display:inline-block}.p1{background:#f6d66e}.p2{background:#67d5fc}.hearts{color:#f58288;letter-spacing:2px;font-size:16px}.kbd{border:1px solid #50617a;border-bottom-width:3px;background:#25344b;border-radius:5px;padding:3px 6px;min-width:28px;text-align:center;font:700 11px/1.2 ui-monospace,Consolas,monospace;color:#e9eff6;display:inline-block}.control-line{display:flex;align-items:center;gap:9px;margin-top:11px;color:#b4c2d1}.control-line:first-of-type{margin-top:0}.control-keys{display:flex;gap:3px}.tiny{font-size:12px;color:#91a4bb}.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.legend span{padding:5px 7px;background:#233247;border-radius:7px;color:#b9cadd;font-size:11px}.bottom-actions{display:flex;gap:8px;margin-top:13px}.bottom-actions button{flex:1;font-size:12px;padding:10px 8px}.note{color:#92a4ba;font-size:12px;line-height:1.6}.foot{margin-top:22px;text-align:center;color:#71859c;font-size:12px}.touch-pad{display:none;justify-content:space-between;gap:12px;padding:16px 8px 4px;align-items:center;touch-action:none}.dpad{display:grid;grid-template-columns:repeat(3,50px);grid-template-rows:repeat(3,43px);gap:3px}.touch-pad button{user-select:none;touch-action:none;display:grid;place-items:center;background:#24344b;color:#eef2f9;border:1px solid #49607c;border-radius:10px;font-size:21px}.touch-pad button:active,.touch-pad button.pressed{background:#526c90}.touch-pad .up{grid-column:2;grid-row:1}.touch-pad .left{grid-column:1;grid-row:2}.touch-pad .down{grid-column:2;grid-row:3}.touch-pad .right{grid-column:3;grid-row:2}.touch-pad .fire{width:93px;height:93px;border-radius:50%;font-size:13px;font-weight:900;color:#1c232c;background:#f6d66e;border-color:#ead07a}.touch-pad .fire:active,.touch-pad .fire.pressed{background:#d7a74d}.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:#223c36;border:1px solid #72bb95;border-radius:10px;padding:10px 16px;z-index:9;box-shadow:0 9px 28px #0007;color:#e8fff1;font-size:13px;opacity:0;pointer-events:none;transition:opacity .15s}.toast.show{opacity:1}@media(max-width:970px){.layout{grid-template-columns:minmax(0,1fr)}.side{grid-template-columns:repeat(2,minmax(0,1fr))}.stage{max-width:700px;margin:auto}.game-column{width:100%}}@media(max-width:620px){.wrap{padding:14px 10px 35px}.header{margin:0 3px 14px}.brand-title{font-size:19px}.brand-sub{font-size:10px}.mark{width:40px;height:40px}.online-pill{font-size:10px;padding:5px 7px}.stage{padding:6px;border-radius:11px}.stage-top{padding:4px 6px 8px}.stage-top span{font-size:11px}.side{grid-template-columns:1fr}.card{padding:15px}.menu{padding:19px}.menu h1,.menu h2{font-size:24px}.overlay{padding:8px}.touch-pad{display:flex}.foot{margin-top:14px}}@media(max-width:360px){.dpad{grid-template-columns:repeat(3,43px);grid-template-rows:repeat(3,39px)}.touch-pad .fire{width:77px;height:77px}.room-code{font-size:30px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="header">
+      <div class="brand"><div class="mark">▣</div><div><div class="brand-title">TANK DUO<span style="color:#f6d66e">.</span></div><div class="brand-sub">АРКАДНІ ТАНЧИКИ • 2 ГРАВЦІ ОНЛАЙН</div></div></div>
+      <div class="header-right"><span class="online-pill" id="connectionStatus">Безкоштовно • P2P</span><button type="button" class="icon-btn" id="soundBtn" title="Увімкнути / вимкнути звук" aria-label="Звук">♪</button></div>
+    </header>
+    <main class="layout">
+      <section class="game-column" aria-label="Ігрове поле">
+        <div class="stage"><div class="stage-top"><strong id="levelTitle">▸ МІСІЯ 01</strong><span id="modeTitle">ГОТОВІ ДО БОЮ?</span></div><div class="board" id="board"><canvas id="game" width="640" height="640" aria-label="Ігрове поле танчиків"></canvas>
+          <div class="overlay" id="overlay">
+            <div class="menu" id="menuHome">
+              <span class="menu-icon">🛡️</span><h1>ЗАХИСТИ БАЗУ</h1><p>Танчики, цегляні стіни, ворожі хвилі — як у дитинстві. Об'єднайтесь із другом і не дайте ворогам зруйнувати штаб.</p>
+              <button type="button" id="createRoom" class="primary wide">⚡ Створити кімнату для друга</button>
+              <button type="button" id="toggleJoin" class="secondary wide">↗ Приєднатися за кодом</button>
+              <button type="button" id="playSolo" class="ghost wide" style="margin-top:10px">Грати самому</button>
+              <div id="joinArea" hidden><input id="roomInput" class="room-input" type="text" maxlength="6" placeholder="КОД" autocomplete="off" spellcheck="false" aria-label="Код кімнати"><button id="joinRoom" class="primary wide">Увійти в кімнату</button></div>
+              <div class="error" id="homeError" role="status"></div><small>Без встановлення гри та без реєстрації</small>
+            </div>
+            <div class="menu" id="menuWait" hidden>
+              <span class="menu-icon">📡</span><h2>КІМНАТУ СТВОРЕНО</h2><p>Надішли другу цей код або скопіюй посилання. Гра почнеться, коли він підключиться.</p>
+              <div class="room-code" id="roomCode">······</div>
+              <button class="primary wide" id="copyInvite">⧉ Скопіювати посилання</button>
+              <button class="secondary wide" id="playWhileWait">Грати, поки чекаю</button>
+              <button class="ghost wide" id="cancelWait" style="margin-top:10px">Назад</button>
+              <div class="error" id="waitError" role="status"></div>
+              <small>Обидва гравці мають залишити сторінку відкритою</small>
+            </div>
+            <div class="menu" id="menuConnect" hidden>
+              <span class="menu-icon">🔄</span><h2>ПІДКЛЮЧЕННЯ</h2><p id="connectInfo">Шукаємо кімнату друга...</p>
+              <button class="secondary wide" id="cancelConnect">Скасувати</button>
+              <div class="error" id="connectError" role="status"></div>
+            </div>
+            <div class="menu" id="menuEnd" hidden>
+              <span class="menu-icon" id="endIcon">🏅</span><h2 id="endTitle">МІСІЮ ЗАВЕРШЕНО</h2><p id="endText">Ваш результат</p><button class="primary wide" id="retry">Зіграти ще раз</button><button class="secondary wide" id="backFromEnd">Головне меню</button>
+            </div>
+          </div>
+        </div></div>
+        <div class="tips">🟨 Гравець 1 — захисник бази &nbsp;·&nbsp; 🟦 Гравець 2 — напарник</div>
+        <div class="touch-pad" id="touchPad" aria-label="Сенсорне керування">
+          <div class="dpad"><button class="up" data-key="up" aria-label="Вгору">▲</button><button class="left" data-key="left" aria-label="Ліворуч">◀</button><button class="down" data-key="down" aria-label="Вниз">▼</button><button class="right" data-key="right" aria-label="Праворуч">▶</button></div><button class="fire" data-key="shoot">ВОГОНЬ</button>
+        </div>
+      </section>
+      <aside class="side">
+        <div class="card"><div class="card-label">Поточна місія</div>
+          <div class="stat-row"><span class="stat-name">Хвиля</span><span class="stat-value" id="waveStat">01</span></div>
+          <div class="stat-row"><span class="stat-name">Ворогів залишилось</span><span class="stat-value" id="enemiesStat">12</span></div>
+          <div class="stat-row"><span class="stat-name">Очки команди</span><span class="stat-value" id="scoreStat">0</span></div>
+          <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Команда</div>
+          <div class="player"><div class="player-left"><i class="color-dot p1"></i><span>Гравець 1 <span class="tiny" id="player1Role">(ви)</span></span></div><span class="hearts" id="player1Hp">♥♥♥</span></div>
+          <div class="player"><div class="player-left"><i class="color-dot p2"></i><span>Гравець 2 <span class="tiny" id="player2Role">(очікуємо)</span></span></div><span class="hearts" id="player2Hp">—</span></div>
+          <div class="bottom-actions"><button id="goMenu" type="button" class="secondary">⌂ В меню</button><button id="restart" type="button" class="secondary">↺ Перезапуск</button></div>
+        </div>
+        <div class="card"><div class="card-label">Як керувати</div><div class="control-line"><span class="control-keys"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></span><span>рух танка</span></div>
+          <div class="control-line"><span class="control-keys"><span class="kbd">↑</span><span class="kbd">←</span><span class="kbd">↓</span><span class="kbd">→</span></span><span>також рух</span></div>
+          <div class="control-line"><span class="kbd" style="min-width:72px">SPACE</span><span>постріл</span></div>
+          <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Перешкоди</div><div class="legend"><span>🧱 Цегла — ламається</span><span>⬜ Сталь — міцна</span><span>💧 Вода — не проїхати</span><span>🌿 Кущі — маскування</span></div>
+        </div>
+        <div class="card"><div class="card-label">Гра з другом</div><div class="note" id="helpText">Один створює кімнату, копіює посилання і надсилає другу. Друг відкриває його, вводить код — і ви граєте разом через інтернет.</div><div class="stat-row" style="margin-bottom:0"><span class="stat-name">Мережа</span><strong style="color:#a6e8b3" id="netStat">Не підключена</strong></div></div>
+      </aside>
+    </main><div class="foot">TANK DUO — фанатська браузерна аркада з оригінальною графікою · P2P через WebRTC</div>
+  </div><div class="toast" id="toast" role="status"></div>
+  <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+  <script>
+  (() => {
+    'use strict';
+    const $ = (id) => document.getElementById(id);
+    const canvas = $('game'), ctx = canvas.getContext('2d', {alpha:false});
+    const N=20, TILE=32, SIZE=640, TAU=Math.PI*2;
+    const DIR={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+    const COLORS={1:'#f3d46e',2:'#67cef7',enemy:'#f37783'};
+    const keys={up:false,down:false,left:false,right:false,shoot:false,heading:'up'};
+    const remoteKeys={up:false,down:false,left:false,right:false,shoot:false,heading:'up'};
+    let role='none', phase='menu', game=null, remoteGame=null, priorGame=null;
+    let snapshotAt=0, peer=null, connection=null, roomCode='', friendHere=false;
+    let muted=false, sound=null, pendingToast=0, lastUI=0, lastSend=0, lastInputSend=0, lastPing=0, pingMs=null, lastTick=performance.now();
+    let seq=0, seed=1123;
+    const newId=()=>++seq;
+    function rand(){ seed=(Math.imul(seed,1664525)+1013904223)>>>0; return seed/4294967296; }
+    function between(a,b){return a+rand()*(b-a);}
+    function limit(v,a,b){return Math.max(a,Math.min(b,v));}
+    function tileCenter(t){return t*TILE+TILE/2;}
+    function visibleMenu(which){
+      $('overlay').hidden=!which;
+      for(const id of ['menuHome','menuWait','menuConnect','menuEnd']) $(id).hidden=id!==which;
+    }
+    function toast(s){ $('toast').textContent=s; $('toast').classList.add('show'); clearTimeout(pendingToast); pendingToast=setTimeout(()=>$('toast').classList.remove('show'),2300); }
+    function playSound(type){
+      if(muted) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if(!AudioContext) return;
+        sound ||= new AudioContext(); if(sound.state==='suspended') sound.resume().catch(()=>{});
+        const now=sound.currentTime;
+        const o=sound.createOscillator(), g=sound.createGain(); o.connect(g);g.connect(sound.destination);
+        const freq=type==='fire'?350:type==='hit'?110:type==='explode'?75:640;
+        o.type=type==='fire'?'square':'sawtooth';o.frequency.setValueAtTime(freq,now);o.frequency.exponentialRampToValueAtTime(type==='fire'?100:45,now+.12);
+        g.gain.setValueAtTime(.038,now);g.gain.exponentialRampToValueAtTime(.001,now+.14);o.start(now);o.stop(now+.16);
+      } catch(_){}
+    }
+    function buildMap(wave){
+      const map=Array.from({length:N},()=>Array(N).fill('.'));
+      function place(x,y,v){ if(x>=0&&x<N&&y>=0&&y<N)map[y][x]=v; }
+      const variant=(wave-1)%3;
+      const brickBlocks=[
+        [2,3],[5,3],[12,3],[16,3],[3,6],[7,6],[11,6],[16,6],[1,9],[5,9],[13,9],[17,9],[3,12],[8,12],[12,12],[16,12],[4,15],[14,15]
+      ];
+      for(const [x,y] of brickBlocks){
+        const xx=variant===1?19-x:x, yy=variant===2?Math.max(3,y-1):y;
+        place(xx,yy,'#');place(xx+1,yy,'#');
+        if((x+y)%3!==0){place(xx,yy+1,'#');place(xx+1,yy+1,'#');}
+      }
+      for(const [x,y] of [[9,4],[10,4],[9,11],[10,11],[2,15],[17,15]])place(x,y,'S');
+      for(const [x,y] of [[4,5],[5,5],[14,5],[15,5],[6,13],[7,13],[13,13],[14,13]])place(x,y,'~');
+      for(const [x,y] of [[1,5],[2,5],[17,5],[18,5],[8,8],[9,8],[10,8],[11,8],[4,11],[15,11],[1,16],[18,16]])place(x,y,'*');
+      // Підступи до бази відкриті для гравців, але захищені цеглою.
+      for(const [x,y] of [[8,17],[9,17],[10,17],[8,18],[10,18]])place(x,y,'#');
+      place(9,18,'B');
+      for(const [x,y] of [[5,17],[5,18],[14,17],[14,18],[2,1],[9,1],[17,1],[1,1],[18,1]])place(x,y,'.');
+      return map.map(row=>row.join(''));
+    }
+    function makePlayer(id){
+      return {id,x:tileCenter(id===1?5:14),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0};
+    }
+    function makeGame(coop=false){
+      seed=1123;seq=0;
+      return {wave:1, score:0, map:buildMap(1), players:[makePlayer(1),makePlayer(2)],enemies:[],bullets:[],fx:[],remaining:12,spawnLeft:12,spawnClock:1.3,enemyKills:0,baseAlive:true,active2:coop, won:false, gameOver:false, stageClock:0, totalTime:0};
+    }
+    function begin(coop){
+      game=makeGame(coop);remoteGame=null;priorGame=null;phase='playing';visibleMenu(null);refreshUI();
+      if(role==='host') transmit(true);
+    }
+    function nextWave(g){
+      g.wave++;g.map=buildMap(g.wave);g.remaining=12+Math.min(12,(g.wave-1)*4);g.spawnLeft=g.remaining;
+      g.enemies=[];g.bullets=[];g.fx=[];g.spawnClock=1.8;g.stageClock=0;
+      g.players.forEach(p=>{if(p.hp<=0)p.hp=2;p.alive=true;p.respawn=0;p.inv=3;p.cd=0;p.x=tileCenter(p.id===1?5:14);p.y=tileCenter(18);p.dir='up';});
+      toast(`Хвиля ${g.wave} — утримайте базу!`);playSound('win');
+      if(role==='host')transmit(true);
+    }
+    function tileAt(g,x,y){const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);return (tx<0||ty<0||tx>=N||ty>=N)?'S':g.map[ty][tx];}
+    function solid(ch){return ch==='#'||ch==='S'||ch==='~'||ch==='B';}
+    function clearTank(g,t,nx,ny){
+      const r=12.4;
+      for(const xx of [nx-r,nx+r])for(const yy of [ny-r,ny+r])if(solid(tileAt(g,xx,yy)))return false;
+      for(const other of [...g.players,...g.enemies]){
+        if(t===other||!other.alive)continue;
+        if(other.id===2&&!g.active2)continue;
+        if(Math.abs(nx-other.x)<25&&Math.abs(ny-other.y)<25)return false;
+      }
+      return true;
+    }
+    function activeDirection(inp){
+      const heading=inp.heading;
+      if(DIR[heading]&&inp[heading])return heading;
+      return ['up','down','left','right'].find(d=>inp[d])||null;
+    }
+    function moveEntity(g,t,dir,dist){
+      t.dir=dir;
+      const [dx,dy]=DIR[dir];
+      if(clearTank(g,t,t.x+dx*dist,t.y+dy*dist)){
+        t.x+=dx*dist;t.y+=dy*dist;return true;
+      }
+      // Коли танк трохи не співпадає із центром коридору, підрівнюємо.
+      const cx=tileCenter(Math.floor(t.x/TILE)),cy=tileCenter(Math.floor(t.y/TILE));
+      if(dx&&Math.abs(t.y-cy)<7){
+        const newY=t.y+(cy>t.y?1:-1)*Math.min(Math.abs(cy-t.y),dist*.7);
+        if(clearTank(g,t,t.x+dx*dist,newY)){t.x+=dx*dist;t.y=newY;return true;}
+      }
+      if(dy&&Math.abs(t.x-cx)<7){
+        const newX=t.x+(cx>t.x?1:-1)*Math.min(Math.abs(cx-t.x),dist*.7);
+        if(clearTank(g,t,newX,t.y+dy*dist)){t.x=newX;t.y+=dy*dist;return true;}
+      }
+      return false;
+    }
+    function spawnBullet(g,t){
+      const [dx,dy]=DIR[t.dir];
+      g.bullets.push({id:newId(),x:t.x+dx*19,y:t.y+dy*19,dir:t.dir,team:t.team||'player',owner:t.id,alive:true});
+      if(t.team!=='enemy'&&(role!=='guest'))playSound('fire');
+    }
+    function burst(g,x,y,color,count=9){
+      for(let i=0;i<count;i++){const a=between(0,TAU),sp=between(30,145);g.fx.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:between(.2,.45),max:.45,color});}
+      if(g.fx.length>90)g.fx.splice(0,g.fx.length-90);
+    }
+    function writeTile(g,x,y,t){const ty=Math.floor(y/TILE),tx=Math.floor(x/TILE);if(ty>=0&&ty<N&&tx>=0&&tx<N){const row=g.map[ty];g.map[ty]=row.slice(0,tx)+t+row.slice(tx+1);}}
+    function killPlayer(g,p){
+      if(p.inv>0||!p.alive)return;
+      burst(g,p.x,p.y,p.id===1?'#f9d87a':'#7acaff',17);playSound('explode');
+      p.hp=Math.max(0,p.hp-1);p.alive=false;p.respawn=p.hp?1.6:0;
+    }
+    function enemyDeath(g,t){
+      if(!t.alive)return;
+      t.alive=false;g.score+=100;g.remaining=Math.max(0,g.remaining-1);g.enemyKills++;
+      burst(g,t.x,t.y,'#f58887',15);playSound('explode');
+    }
+    function gameLost(g){
+      if(g.gameOver)return;
+      g.gameOver=true;phase='ended';
+      $('endIcon').textContent='💥';$('endTitle').textContent='БАЗУ ВТРАЧЕНО';
+      $('endText').textContent=`Ви дійшли до хвилі ${g.wave}. Очки команди: ${g.score}. Спробуйте ще раз!`;
+      $('retry').hidden=role==='guest';visibleMenu('menuEnd');playSound('hit');
+      if(role==='host')transmit(true);
+    }
+    function step(g,dt){
+      g.totalTime+=dt;g.stageClock+=dt;
+      for(const p of g.players){
+        if(p.id===2&&!g.active2)continue;
+        if(!p.alive){p.respawn-=dt;if(p.respawn<=0&&p.hp>0){p.x=tileCenter(p.id===1?5:14);p.y=tileCenter(18);p.alive=true;p.inv=2.4;}continue;}
+        p.cd=Math.max(0,p.cd-dt);p.inv=Math.max(0,p.inv-dt);
+        const input=p.id===1?keys:remoteKeys, d=activeDirection(input);
+        if(d)moveEntity(g,p,d,112*dt);
+        if(input.shoot&&p.cd===0){spawnBullet(g,p);p.cd=.34;}
+      }
+      g.spawnClock-=dt;
+      if(g.spawnLeft>0&&g.spawnClock<=0&&g.enemies.filter(e=>e.alive).length<5+Math.min(3,g.wave)){
+        const positions=[2,9,17],start=Math.floor(rand()*positions.length);
+        for(let i=0;i<positions.length;i++){
+          const tx=positions[(start+i)%positions.length],candidate={x:tileCenter(tx),y:tileCenter(1),alive:true};
+          if(clearTank(g,candidate,candidate.x,candidate.y)){
+            const e={id:newId(),x:candidate.x,y:candidate.y,dir:'down',hp:1,team:'enemy',alive:true,cd:between(.7,1.6),turn:between(.4,1.1),speed:between(53,69)+Math.min(25,g.wave*3)};
+            g.enemies.push(e);g.spawnLeft--;g.spawnClock=Math.max(.6,1.9-g.wave*.12);break;
+          }
+        }
+        if(g.spawnClock<=0)g.spawnClock=.4;
+      }
+      for(const e of g.enemies){
+        if(!e.alive)continue;
+        e.cd-=dt;e.turn-=dt;
+        if(e.turn<=0){
+          const wantBase=rand()<.62;
+          const weighted=wantBase?(e.x<tileCenter(9)?['down','right','down','left']:['down','left','down','right']):['down','left','right','up'];
+          e.dir=weighted[Math.floor(rand()*weighted.length)];e.turn=between(.5,1.8);
+        }
+        if(!moveEntity(g,e,e.dir,e.speed*dt)){e.turn=0;}
+        if(e.cd<=0){spawnBullet(g,e);e.cd=between(.95,2.1)*Math.max(.68,1-g.wave*.035);}
+      }
+      // Кулі рухаються невеликими кроками, щоби не проходили крізь стіни на поворотах кадру.
+      for(const b of g.bullets){
+        if(!b.alive)continue;
+        const [dx,dy]=DIR[b.dir],speed=b.team==='enemy'?182:270;
+        const steps=Math.max(1,Math.ceil(speed*dt/7));
+        for(let i=0;i<steps&&b.alive;i++){
+          b.x+=dx*speed*dt/steps;b.y+=dy*speed*dt/steps;
+          if(b.x<0||b.y<0||b.x>=SIZE||b.y>=SIZE){b.alive=false;break;}
+          const hit=tileAt(g,b.x,b.y);
+          if(hit==='B'){b.alive=false;g.baseAlive=false;burst(g,b.x,b.y,'#f6cb67',30);gameLost(g);break;}
+          if(hit==='#'){writeTile(g,b.x,b.y,'.');b.alive=false;burst(g,b.x,b.y,'#d28c65',5);break;}
+          if(hit==='S'){b.alive=false;burst(g,b.x,b.y,'#a6b7cd',4);break;}
+          const targets=b.team==='enemy'?g.players:g.enemies;
+          for(const t of targets){
+            if(!t.alive||(b.team==='enemy'&&t.id===2&&!g.active2))continue;
+            if(Math.abs(t.x-b.x)<14&&Math.abs(t.y-b.y)<14){
+              b.alive=false;
+              if(b.team==='enemy')killPlayer(g,t);else enemyDeath(g,t);
+              break;
+            }
+          }
+        }
+      }
+      g.bullets=g.bullets.filter(b=>b.alive);g.enemies=g.enemies.filter(e=>e.alive);
+      for(const p of g.fx){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=40*dt;p.life-=dt;}g.fx=g.fx.filter(p=>p.life>0);
+      if(g.baseAlive&&g.players.filter(p=>p.id===1||g.active2).every(p=>p.hp<=0))gameLost(g);
+      if(!g.gameOver&&g.remaining<=0&&g.spawnLeft<=0)nextWave(g);
+    }
+    function pack(g){
+      return {wave:g.wave,score:g.score,map:g.map,remaining:g.remaining,baseAlive:g.baseAlive,active2:g.active2,gameOver:g.gameOver,
+        players:g.players.map(p=>({id:p.id,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv})),
+        enemies:g.enemies.map(e=>({id:e.id,x:Math.round(e.x*10)/10,y:Math.round(e.y*10)/10,dir:e.dir,alive:e.alive})),
+        bullets:g.bullets.map(b=>({id:b.id,x:Math.round(b.x),y:Math.round(b.y),dir:b.dir,team:b.team})),
+        fx:g.fx.slice(-28).map(p=>({x:Math.round(p.x),y:Math.round(p.y),color:p.color,life:p.life}))};
+    }
+    function transmit(force=false){
+      if(role!=='host'||!connection?.open||!game)return;
+      const now=performance.now();if(!force&&now-lastSend<65)return;lastSend=now;
+      try{connection.send({t:'state',state:pack(game),phase});}catch(_){ }
+    }
+    function getView(){
+      if(role!=='guest')return game;
+      if(!remoteGame)return null;
+      if(!priorGame)return remoteGame;
+      const fraction=limit((performance.now()-snapshotAt)/65,0,1);
+      const interp=(oldList,newList)=>newList.map(item=>{
+        const old=oldList.find(x=>x.id===item.id);
+        if(!old)return item;
+        return {...item,x:old.x+(item.x-old.x)*fraction,y:old.y+(item.y-old.y)*fraction};
+      });
+      return {...remoteGame,players:interp(priorGame.players||[],remoteGame.players||[]),enemies:interp(priorGame.enemies||[],remoteGame.enemies||[]),bullets:interp(priorGame.bullets||[],remoteGame.bullets||[])};
+    }
+    function brick(x,y){
+      ctx.fillStyle='#9b503f';ctx.fillRect(x+1,y+1,30,30);
+      ctx.fillStyle='#cb8060';ctx.fillRect(x+1,y+1,30,4);ctx.fillRect(x+1,y+15,30,3);
+      ctx.fillStyle='#6e3530';ctx.fillRect(x,y+14,32,3);ctx.fillRect(x+15,y,3,14);ctx.fillRect(x+8,y+17,3,15);
+      ctx.fillStyle='#ecad81';ctx.fillRect(x+3,y+4,10,2);ctx.fillRect(x+20,y+20,8,2);
+    }
+    function metal(x,y){
+      ctx.fillStyle='#506276';ctx.fillRect(x+1,y+1,30,30);ctx.fillStyle='#859bb0';ctx.fillRect(x+2,y+2,28,5);ctx.fillRect(x+2,y+2,5,28);
+      ctx.fillStyle='#334457';ctx.fillRect(x+2,y+26,28,4);ctx.fillRect(x+26,y+2,4,28);
+      ctx.fillStyle='#b8cbda';for(const [a,b] of [[7,7],[24,7],[7,24],[24,24]])ctx.fillRect(x+a,y+b,3,3);
+      ctx.fillStyle='#6c8398';ctx.fillRect(x+12,y+11,8,10);
+    }
+    function water(x,y,time){
+      ctx.fillStyle='#174965';ctx.fillRect(x,y,32,32);ctx.fillStyle='#226785';ctx.fillRect(x+1,y+4,30,6);ctx.fillRect(x+1,y+19,30,5);
+      const shift=Math.round((time*13)%32);ctx.fillStyle='#65bbd0';ctx.fillRect(x+(shift%19),y+8,10,2);ctx.fillRect(x+((shift+12)%18),y+24,10,2);
+    }
+    function bush(x,y){
+      ctx.fillStyle='#205037';ctx.fillRect(x+2,y+2,28,28);ctx.fillStyle='#2e7750';
+      for(const [xx,yy] of [[2,5],[13,3],[23,8],[6,17],[18,16],[3,25],[25,26]])ctx.fillRect(x+xx,y+yy,9,6);
+      ctx.fillStyle='#4b9d68';for(const [xx,yy] of [[7,5],[21,12],[9,23],[24,25]])ctx.fillRect(x+xx,y+yy,5,4);
+    }
+    function base(x,y){
+      ctx.fillStyle='#d2c385';ctx.fillRect(x+5,y+7,22,21);ctx.fillStyle='#927e58';ctx.fillRect(x+5,y+23,22,5);
+      ctx.fillStyle='#f0dc96';ctx.fillRect(x+7,y+3,5,7);ctx.fillRect(x+14,y+3,5,7);ctx.fillRect(x+21,y+3,5,7);
+      ctx.fillStyle='#433c37';ctx.fillRect(x+12,y+13,8,15);ctx.fillStyle='#f9b95b';ctx.fillRect(x+14,y+15,4,5);
+    }
+    function tank(t,color,time){
+      if(!t.alive)return;
+      if(t.inv>0&&Math.floor(time*9)%2===0)return;
+      ctx.save();ctx.translate(Math.round(t.x),Math.round(t.y));
+      const angle={up:0,right:Math.PI/2,down:Math.PI,left:-Math.PI/2}[t.dir]||0;
+      ctx.rotate(angle);ctx.fillStyle='#070b13';ctx.fillRect(-15,-14,30,29);
+      ctx.fillStyle='#303c41';ctx.fillRect(-14,-14,6,28);ctx.fillRect(8,-14,6,28);
+      ctx.fillStyle=color;ctx.fillRect(-11,-12,22,24);ctx.fillStyle='#101b27';ctx.fillRect(-11,-8,4,4);ctx.fillRect(7,-8,4,4);ctx.fillRect(-11,4,4,4);ctx.fillRect(7,4,4,4);
+      ctx.fillStyle=color;ctx.fillRect(-4,-21,8,20);ctx.fillStyle='#151e2b';ctx.fillRect(-3,-20,6,3);
+      ctx.fillStyle=t.team==='enemy'?'#7b2531':'#405267';ctx.fillRect(-7,-7,14,14);ctx.fillStyle=color;ctx.fillRect(-5,-5,10,10);ctx.fillStyle='#fff2c4';ctx.fillRect(-2,-2,4,4);
+      ctx.restore();
+      if(t.inv>0){ctx.strokeStyle='rgba(176,227,255,.47)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(t.x,t.y,18,0,TAU);ctx.stroke();}
+    }
+    function background(time){
+      ctx.fillStyle='#141e23';ctx.fillRect(0,0,SIZE,SIZE);
+      for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+        ctx.fillStyle=(x+y)%2?'#182229':'#162027';ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
+        if((x*13+y*7)%8===0){ctx.fillStyle='#263039';ctx.fillRect(x*TILE+23,y*TILE+7,3,3);}
+      }
+    }
+    function render(time){
+      const v=getView();background(time);
+      if(!v){ // Декорація в головному меню.
+        const map=buildMap(1);renderMap(map,time,false);
+        tank({x:tileCenter(5),y:tileCenter(18),dir:'up',alive:true},COLORS[1],time);
+        tank({x:tileCenter(14),y:tileCenter(18),dir:'up',alive:true},COLORS[2],time);
+        for(const [x,y] of [[2,2],[10,5],[16,8]])tank({x:tileCenter(x),y:tileCenter(y),dir:'down',alive:true,team:'enemy'},COLORS.enemy,time);
+        renderMap(map,time,true);return;
+      }
+      renderMap(v.map,time,false);
+      for(const b of v.bullets||[]){ctx.fillStyle=b.team==='enemy'?'#ff8d9c':'#ffec93';ctx.fillRect(b.x-4,b.y-4,8,8);ctx.fillStyle='#fff9ef';ctx.fillRect(b.x-2,b.y-2,4,4);}
+      for(const p of v.players||[])if(p.id===1||v.active2)tank(p,COLORS[p.id],time);
+      for(const e of v.enemies||[])tank(e,COLORS.enemy,time);
+      for(const p of v.fx||[]){ctx.globalAlpha=limit(p.life*3,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-3,p.y-3,6,6);}ctx.globalAlpha=1;
+      renderMap(v.map,time,true);
+      if(!v.baseAlive){const x=tileCenter(9),y=tileCenter(18);ctx.fillStyle='#9b3a31';ctx.fillRect(x-12,y-10,25,22);ctx.fillStyle='#2a1b23';ctx.fillRect(x-7,y-4,15,15);}
+    }
+    function renderMap(map,time,foreground){
+      if(!map)return;
+      for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+        const ch=map[y]?.[x];if(foreground!== (ch==='*'))continue;
+        const px=x*TILE,py=y*TILE;
+        if(ch==='#')brick(px,py);else if(ch==='S')metal(px,py);else if(ch==='~')water(px,py,time);else if(ch==='B')base(px,py);else if(ch==='*')bush(px,py);
+      }
+    }
+    function refreshUI(){
+      const v=role==='guest'?remoteGame:game;
+      $('waveStat').textContent=String(v?.wave||1).padStart(2,'0');
+      $('levelTitle').textContent='▸ МІСІЯ '+String(v?.wave||1).padStart(2,'0');
+      $('enemiesStat').textContent=v?.remaining??12;
+      $('scoreStat').textContent=(v?.score||0).toLocaleString('uk-UA');
+      const p1=v?.players?.find(p=>p.id===1),p2=v?.players?.find(p=>p.id===2);
+      $('player1Hp').textContent=p1?'♥'.repeat(p1.hp)+'♡'.repeat(Math.max(0,3-p1.hp)):'♥♥♥';
+      $('player2Hp').textContent=v?.active2&&p2?'♥'.repeat(p2.hp)+'♡'.repeat(Math.max(0,3-p2.hp)):'—';
+      $('player1Role').textContent=role==='guest'?'(друг)':'(ви)';
+      $('player2Role').textContent=role==='guest'?'(ви)':v?.active2?'(друг)':'(очікуємо)';
+      $('restart').disabled=role==='guest'||role==='none'||phase==='connecting'||phase==='waiting';
+      $('modeTitle').textContent=role==='guest'?'ГРАВЕЦЬ 2':role==='host'?'КОМАНДНИЙ РЕЖИМ':role==='solo'?'СОЛО РЕЖИМ':'ГОТОВІ ДО БОЮ?';
+      const label=role==='host'?(friendHere?'Друг у грі': 'Очікуємо друга'):role==='guest'?(connection?.open?'Зв’язок із другом':'З’єднання втрачено'):role==='solo'?'Локальна гра':'Безкоштовно • P2P';
+      $('connectionStatus').textContent=label;
+      $('netStat').textContent=role==='host'?(friendHere?'Підключено':'Кімната відкрита'):role==='guest'?(pingMs!==null?`${pingMs} мс`:'Підключено'):role==='solo'?'Не потрібна':'Не підключена';
+      $('helpText').textContent=role==='host'&&roomCode?`Код кімнати: ${roomCode}. Друг може приєднатися під час гри. Поки вкладку відкрито, кімната активна.`:'Один створює кімнату, копіює посилання і надсилає другу. Друг відкриває його, вводить код — і ви граєте разом через інтернет.';
+    }
+    function clearKeys(){for(const d of ['up','down','left','right','shoot']){keys[d]=false;remoteKeys[d]=false;}document.querySelectorAll('.touch-pad .pressed').forEach(el=>el.classList.remove('pressed'));}
+    function leave(){
+      try{connection?.close();peer?.destroy();}catch(_){ }
+      connection=null;peer=null;roomCode='';friendHere=false;pingMs=null;role='none';phase='menu';game=null;remoteGame=null;priorGame=null;clearKeys();visibleMenu('menuHome');$('homeError').textContent='';refreshUI();
+    }
+    function randomCode(){
+      const letters='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const arr=new Uint32Array(6);
+      if(window.crypto?.getRandomValues)window.crypto.getRandomValues(arr);else for(let i=0;i<6;i++)arr[i]=Math.floor(Math.random()*1000);
+      return Array.from(arr,number=>letters[number%letters.length]).join('');
+    }
+    function inviteLink(){
+      if(!/^https?:$/.test(location.protocol))return null;
+      try{const url=new URL(location.href);url.searchParams.set('room',roomCode);url.hash='';return url.toString();}catch(_){return null;}
+    }
+    async function copyInvite(){
+      const link=inviteLink();
+      const text=link||`Код кімнати TANK DUO: ${roomCode}. Відкрий свій index.html і приєднайся за цим кодом.`;
+      try{await navigator.clipboard.writeText(text);toast(link?'Посилання скопійовано':'Код скопійовано. Надішли другу HTML-файл.');}
+      catch(_){
+        const field=document.createElement('textarea');field.value=text;field.style.position='fixed';field.style.opacity='0';document.body.appendChild(field);field.select();
+        try{document.execCommand('copy');toast(link?'Посилання скопійовано':'Код скопійовано. Надішли другу HTML-файл.');}catch(__){window.prompt('Скопіюй це посилання:',text);}field.remove();
+      }
+    }
+    function handleHostConnection(c){
+      if(role!=='host'){c.close();return;}
+      if(connection?.open){c.on('open',()=>{try{c.send({t:'full'});}finally{c.close();}});return;}
+      connection=c;
+      c.on('open',()=>{
+        if(role!=='host'){c.close();return;}
+        friendHere=true;
+        if(phase==='waiting'||!game){begin(true);}else{
+          game.active2=true;
+          const p=game.players[1];p.hp=Math.max(1,p.hp);p.alive=true;p.x=tileCenter(14);p.y=tileCenter(18);p.inv=3;
+        }
+        try{c.send({t:'welcome',code:roomCode});}catch(_){ }
+        transmit(true);toast('Друг підключився! До бою!');refreshUI();
+      });
+      c.on('data',(data)=>{
+        if(role!=='host'||connection!==c||!data||typeof data!=='object')return;
+        if(data.t==='input'&&data.keys){for(const k of ['up','down','left','right','shoot'])remoteKeys[k]=data.keys[k]===true;
+          remoteKeys.heading=DIR[data.keys.heading]?data.keys.heading:'up';}
+        if(data.t==='ping'&&Number.isFinite(data.sent))try{c.send({t:'pong',sent:data.sent});}catch(_){ }
+      });
+      c.on('close',()=>{
+        if(connection!==c)return;
+        connection=null;friendHere=false;clearKeys();
+        if(game)game.active2=false;
+        toast('Друг відключився. Можна продовжити одному.');refreshUI();
+      });
+      c.on('error',()=>{toast('Помилка з’єднання з другом');});
+    }
+    function createRoom(){
+      if(!window.Peer){$('homeError').textContent='Не завантажився PeerJS. Перевір інтернет або блокувальник скриптів.';return;}
+      leave();role='host';phase='waiting';roomCode=randomCode();
+      $('roomCode').textContent='••••••';$('waitError').textContent='Підключаємося до мережі...';visibleMenu('menuWait');
+      peer=new Peer('tankduo-'+roomCode.toLowerCase(),{debug:0});
+      peer.on('open',()=>{if(role!=='host')return;$('roomCode').textContent=roomCode;$('waitError').textContent='';refreshUI();});
+      peer.on('connection',handleHostConnection);
+      peer.on('error',(e)=>{
+        if(role!=='host')return;
+        $('waitError').textContent=e.type==='unavailable-id'?'Цей код уже зайнято. Повернись назад і створи нову кімнату.':'Не вдалося підключитися до мережі. Перевір інтернет.';
+      });
+      peer.on('disconnected',()=>{if(role==='host')toast('Зв’язок із сервісом кімнат втрачено');});
+      refreshUI();
+    }
+    function joinRoom(){
+      const code=$('roomInput').value.toUpperCase().replace(/[^A-Z2-9]/g,'');
+      if(code.length!==6){$('homeError').textContent='Введи шестисимвольний код кімнати.';return;}
+      if(!window.Peer){$('homeError').textContent='Не завантажився PeerJS. Перевір інтернет.';return;}
+      leave();role='guest';phase='connecting';roomCode=code;visibleMenu('menuConnect');$('connectInfo').textContent='Підключаємося до кімнати '+code+'...';$('connectError').textContent='';
+      peer=new Peer(undefined,{debug:0});
+      peer.on('open',()=>{
+        if(role!=='guest')return;
+        const c=peer.connect('tankduo-'+code.toLowerCase(),{reliable:true,serialization:'json'});connection=c;
+        setTimeout(()=>{if(role==='guest'&&phase==='connecting'&&connection===c&&!remoteGame){$('connectError').textContent='З’єднання затримується. Перевірте код і спробуйте іншу мережу, якщо не вдається підключитися.';}},12000);
+        c.on('open',()=>{$('connectInfo').textContent='З’єднання встановлено. Очікуємо ігрове поле...';refreshUI();});
+        c.on('data',(data)=>{
+          if(role!=='guest'||connection!==c||!data||typeof data!=='object')return;
+          if(data.t==='full'){$('connectError').textContent='У кімнаті вже грають удвох.';c.close();return;}
+          if(data.t==='welcome'){
+            phase='playing';visibleMenu(null);toast('Ви приєднались як гравець 2!');refreshUI();
+          }
+          if(data.t==='state'&&data.state&&Array.isArray(data.state.map)){
+            priorGame=remoteGame;remoteGame=data.state;snapshotAt=performance.now();
+            if(data.phase==='ended'||data.state.gameOver){
+              phase='ended';$('endIcon').textContent='💥';$('endTitle').textContent='БАЗУ ВТРАЧЕНО';
+              $('endText').textContent=`Хвиля ${remoteGame.wave}. Очки команди: ${remoteGame.score}. Хост може перезапустити гру.`;
+              $('retry').hidden=true;visibleMenu('menuEnd');
+            }else if(phase==='ended'){phase='playing';visibleMenu(null);}
+            refreshUI();
+          }
+          if(data.t==='pong'&&typeof data.sent==='number'){pingMs=Math.max(0,Math.round(performance.now()-data.sent));}
+        });
+        c.on('close',()=>{
+          if(role==='guest'&&connection===c){
+            connection=null;remoteGame=null;priorGame=null;phase='connecting';visibleMenu('menuConnect');$('connectInfo').textContent='З’єднання розірвано.';$('connectError').textContent='Попроси друга створити нову кімнату або повтори підключення.';
+          }
+        });
+        c.on('error',()=>{$('connectError').textContent='Помилка підключення. Перевір код і спробуй ще раз.';});
+      });
+      peer.on('error',(e)=>{
+        if(role==='guest'){$('connectError').textContent=e.type==='peer-unavailable'?'Кімнату не знайдено. Перевір код і чи друг відкрив гру.':'Не вдалося з’єднатися. Можливо, мережа блокує пряме P2P-з’єднання.';}
+      });
+      peer.on('disconnected',()=>{if(role==='guest')toast('Втрачено з’єднання із сервісом кімнат');});
+      refreshUI();
+    }
+    function frame(timestamp){
+      const dt=Math.min(.045,(timestamp-lastTick)/1000||0);lastTick=timestamp;
+      if((role==='host'||role==='solo')&&phase==='playing'&&game){
+        step(game,dt);
+        if(role==='host')transmit();
+      }
+      if(role==='guest'&&phase==='playing'&&connection?.open){
+        if(timestamp-lastInputSend>45){lastInputSend=timestamp;try{connection.send({t:'input',keys:{...keys}});}catch(_){ }}
+        if(timestamp-lastPing>3000){lastPing=timestamp;try{connection.send({t:'ping',sent:performance.now()});}catch(_){ }}
+      }
+      render(timestamp/1000);
+      if(timestamp-lastUI>140){lastUI=timestamp;refreshUI();}
+      requestAnimationFrame(frame);
+    }
+    const KEYMAP={KeyW:'up',KeyA:'left',KeyS:'down',KeyD:'right',ArrowUp:'up',ArrowLeft:'left',ArrowDown:'down',ArrowRight:'right',Space:'shoot'};
+    document.addEventListener('keydown',(e)=>{
+      if(e.target instanceof HTMLInputElement)return;
+      const d=KEYMAP[e.code];if(!d)return;
+      if(['playing'].includes(phase)&&['guest','host','solo'].includes(role))e.preventDefault();
+      keys[d]=true;if(d!=='shoot')keys.heading=d;
+    });
+    document.addEventListener('keyup',(e)=>{const d=KEYMAP[e.code];if(d){keys[d]=false;if(phase==='playing')e.preventDefault();}});
+    window.addEventListener('blur',clearKeys);
+    document.querySelectorAll('.touch-pad button[data-key]').forEach(btn=>{
+      const d=btn.dataset.key;
+      btn.addEventListener('pointerdown',(e)=>{e.preventDefault();btn.setPointerCapture(e.pointerId);keys[d]=true;if(d!=='shoot')keys.heading=d;btn.classList.add('pressed');});
+      const release=()=>{keys[d]=false;btn.classList.remove('pressed');};
+      btn.addEventListener('pointerup',release);btn.addEventListener('pointercancel',release);btn.addEventListener('lostpointercapture',release);
+    });
+    $('playSolo').addEventListener('click',()=>{leave();role='solo';begin(false);});
+    $('createRoom').addEventListener('click',createRoom);
+    $('toggleJoin').addEventListener('click',()=>{$('joinArea').hidden=!$('joinArea').hidden;if(!$('joinArea').hidden)$('roomInput').focus();});
+    $('roomInput').addEventListener('input',()=>{$('roomInput').value=$('roomInput').value.toUpperCase().replace(/[^A-Z2-9]/g,'').slice(0,6);$('homeError').textContent='';});
+    $('roomInput').addEventListener('keydown',(e)=>{if(e.key==='Enter')joinRoom();});
+    $('joinRoom').addEventListener('click',joinRoom);
+    $('copyInvite').addEventListener('click',copyInvite);
+    $('playWhileWait').addEventListener('click',()=>{if(role==='host')begin(friendHere);});
+    $('cancelWait').addEventListener('click',leave);$('cancelConnect').addEventListener('click',leave);
+    $('goMenu').addEventListener('click',leave);$('backFromEnd').addEventListener('click',leave);
+    $('retry').addEventListener('click',()=>{if(role==='host'||role==='solo')begin(role==='host'&&friendHere);});
+    $('restart').addEventListener('click',()=>{if(role==='host'||role==='solo')begin(role==='host'&&friendHere);});
+    $('soundBtn').addEventListener('click',()=>{muted=!muted;$('soundBtn').textContent=muted?'♩':'♪';toast(muted?'Звук вимкнено':'Звук увімкнено');if(!muted)playSound('win');});
+    const prefill=new URLSearchParams(location.search).get('room');
+    if(prefill&&/^[a-z2-9]{6}$/i.test(prefill)){$('roomInput').value=prefill.toUpperCase();$('joinArea').hidden=false;}
+    refreshUI();requestAnimationFrame(frame);
+  })();
+  </script>
+</body>
+</html>
