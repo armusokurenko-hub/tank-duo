@@ -11,13 +11,13 @@
     *{box-sizing:border-box} html{scroll-behavior:smooth} body{margin:0;min-height:100vh;color:var(--white);font:500 14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(ellipse 70% 35% at 50% -10%,#1a3150 0%,transparent 85%),var(--bg)}
     button,input{font:inherit}button{cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible,input:focus-visible{outline:3px solid #a6e8b3;outline-offset:2px}
     .wrap{max-width:1100px;margin:auto;padding:24px 24px 52px}.header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:22px}.brand{display:flex;gap:12px;align-items:center}.mark{display:grid;place-items:center;width:47px;height:47px;border-radius:13px;background:#f6d66e;color:#122030;font-size:24px;box-shadow:0 6px 22px #f6d66e22}.brand-title{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-weight:900;letter-spacing:2px;font-size:22px;line-height:1.1}.brand-sub{font-size:12px;color:var(--soft);margin-top:2px}.header-right{display:flex;align-items:center;gap:10px}.online-pill{border:1px solid #314957;border-radius:99px;padding:7px 12px;color:#b4d8c5;background:#14232a;white-space:nowrap;font-size:12px}.online-pill:before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#78da99;box-shadow:0 0 10px #78da99;margin-right:7px}.icon-btn{background:#1a2638;border:1px solid #33435a;color:#dce5f0;border-radius:10px;min-width:39px;height:38px}.icon-btn:hover{background:#26344a}.layout{display:grid;grid-template-columns:minmax(0,680px) minmax(240px,1fr);gap:20px;align-items:start}.game-column{min-width:0}.stage{padding:12px;border:1px solid #314157;background:#111a29;border-radius:19px;box-shadow:0 15px 50px #0005}.stage-top{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 4px 11px}.stage-top strong{letter-spacing:1.3px;font-family:ui-monospace,Consolas,monospace;font-size:12px}.stage-top span{font-size:12px;color:var(--soft)}.board{position:relative;aspect-ratio:1;background:#121a23;overflow:hidden;border-radius:10px;border:2px solid #394960}.board:after{content:"";position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 28px #0004}canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-action:none}.overlay{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:18px;background:#080e19ca;backdrop-filter:blur(5px);overflow-y:auto}.overlay[hidden]{display:none}.menu{width:min(100%,390px);padding:27px;background:linear-gradient(155deg,#1a2841,#111d2e);border:1px solid #465875;border-radius:18px;box-shadow:0 18px 70px #0008;text-align:center}.menu-icon{font-size:34px;display:block;margin-bottom:8px}.menu h1,.menu h2{font-size:28px;line-height:1.16;letter-spacing:-.8px;margin:0 0 10px;font-weight:850}.menu p{color:#aebfd1;margin:0 0 21px;font-size:14px}.menu small{color:#91a2b8}.menu .secondary{margin-top:11px}.menu .split{display:flex;gap:8px;margin-top:10px}.menu .split button{flex:1}.primary,.secondary,.ghost{border-radius:11px;padding:12px 16px;font-weight:750;line-height:1.3;border:1px solid transparent;transition:filter .15s,background .15s}.primary{background:#f4d478;color:#1b2330;box-shadow:0 5px 22px #f4d47819}.primary:hover{filter:brightness(1.07)}.secondary{background:#26354a;color:#f3f6fa;border-color:#40506a}.secondary:hover{background:#344761}.ghost{background:transparent;border-color:#4c607b;color:#d7e3f4}.ghost:hover{background:#283a50}.wide{width:100%}.room-input{width:100%;border:1px solid #506582;border-radius:11px;background:#0d192a;color:#f7f9fc;padding:13px 10px;letter-spacing:6px;text-align:center;font:850 23px/1 ui-monospace,Consolas,monospace;margin:5px 0 11px;text-transform:uppercase}.room-code{font:900 36px/1.2 ui-monospace,Consolas,monospace;letter-spacing:8px;color:#f7d77d;background:#0c1523;border:1px dashed #6a6480;border-radius:12px;margin:13px 0 16px;padding:18px 8px;user-select:all}.error{color:#ffb2b2;font-size:13px;min-height:20px;margin:5px 0 0}.tips{margin-top:11px;text-align:center;font-size:12px;color:#9bacc0}.side{display:grid;gap:14px}.card{padding:19px;background:linear-gradient(152deg,#162236,#101a2a);border:1px solid #30415a;border-radius:16px}.card-label{color:#95a8c0;text-transform:uppercase;letter-spacing:1.5px;font-size:11px;font-weight:800;margin-bottom:14px}.stat-row{display:flex;align-items:center;justify-content:space-between;gap:15px;margin:12px 0}.stat-row:last-child{margin-bottom:0}.stat-value{font:900 19px/1.3 ui-monospace,Consolas,monospace;color:#f4f7fc}.stat-name{color:#b4c2d1}.separator{height:1px;background:#2b3c51;margin:14px 0}.player{display:flex;justify-content:space-between;align-items:center;gap:7px;padding:10px;border-radius:10px;margin-top:9px;background:#0d1929}.player-left{display:flex;align-items:center;gap:9px;font-size:13px}.color-dot{width:10px;height:10px;border-radius:3px;display:inline-block}.p1{background:#f6d66e}.p2{background:#67d5fc}.hearts{color:#f58288;letter-spacing:2px;font-size:16px}.kbd{border:1px solid #50617a;border-bottom-width:3px;background:#25344b;border-radius:5px;padding:3px 6px;min-width:28px;text-align:center;font:700 11px/1.2 ui-monospace,Consolas,monospace;color:#e9eff6;display:inline-block}.control-line{display:flex;align-items:center;gap:9px;margin-top:11px;color:#b4c2d1}.control-line:first-of-type{margin-top:0}.control-keys{display:flex;gap:3px}.tiny{font-size:12px;color:#91a4bb}.legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.legend span{padding:5px 7px;background:#233247;border-radius:7px;color:#b9cadd;font-size:11px}.bottom-actions{display:flex;gap:8px;margin-top:13px}.bottom-actions button{flex:1;font-size:12px;padding:10px 8px}.note{color:#92a4ba;font-size:12px;line-height:1.6}.foot{margin-top:22px;text-align:center;color:#71859c;font-size:12px}.touch-pad{display:none;justify-content:space-between;gap:12px;padding:16px 8px 4px;align-items:center;touch-action:none}.dpad{display:grid;grid-template-columns:repeat(3,50px);grid-template-rows:repeat(3,43px);gap:3px}.touch-pad button{user-select:none;touch-action:none;display:grid;place-items:center;background:#24344b;color:#eef2f9;border:1px solid #49607c;border-radius:10px;font-size:21px}.touch-pad button:active,.touch-pad button.pressed{background:#526c90}.touch-pad .up{grid-column:2;grid-row:1}.touch-pad .left{grid-column:1;grid-row:2}.touch-pad .down{grid-column:2;grid-row:3}.touch-pad .right{grid-column:3;grid-row:2}.touch-pad .fire{width:93px;height:93px;border-radius:50%;font-size:13px;font-weight:900;color:#1c232c;background:#f6d66e;border-color:#ead07a}.touch-pad .fire:active,.touch-pad .fire.pressed{background:#d7a74d}.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:26px;background:#223c36;border:1px solid #72bb95;border-radius:10px;padding:10px 16px;z-index:9;box-shadow:0 9px 28px #0007;color:#e8fff1;font-size:13px;opacity:0;pointer-events:none;transition:opacity .15s}.toast.show{opacity:1}@media(max-width:970px){.layout{grid-template-columns:minmax(0,1fr)}.side{grid-template-columns:repeat(2,minmax(0,1fr))}.stage{max-width:700px;margin:auto}.game-column{width:100%}}@media(max-width:620px){.wrap{padding:14px 10px 35px}.header{margin:0 3px 14px}.brand-title{font-size:19px}.brand-sub{font-size:10px}.mark{width:40px;height:40px}.online-pill{font-size:10px;padding:5px 7px}.stage{padding:6px;border-radius:11px}.stage-top{padding:4px 6px 8px}.stage-top span{font-size:11px}.side{grid-template-columns:1fr}.card{padding:15px}.menu{padding:19px}.menu h1,.menu h2{font-size:24px}.overlay{padding:8px}.touch-pad{display:flex}.foot{margin-top:14px}}@media(max-width:360px){.dpad{grid-template-columns:repeat(3,43px);grid-template-rows:repeat(3,39px)}.touch-pad .fire{width:77px;height:77px}.room-code{font-size:30px}}
-    .game-column:fullscreen{width:100%;height:100%;max-width:none;background:#090e18;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;overflow:auto;gap:8px}
-    .game-column:fullscreen .stage{width:min(calc(100vw - 24px),calc(100dvh - 100px));max-width:none;padding:8px;flex:0 1 auto}
-    .game-column:fullscreen .board{width:100%;aspect-ratio:1}
-    .game-column:fullscreen .tips{margin:0}
-    .game-column:fullscreen .touch-pad{flex-shrink:0}
-    @media(pointer:coarse){.game-column:fullscreen .stage{width:min(calc(100vw - 16px),calc(100dvh - 225px))}.game-column:fullscreen .touch-pad{display:flex;width:min(100%,560px);padding:4px 8px}}
-    @media(max-height:520px){.game-column:fullscreen .tips{display:none}.game-column:fullscreen .stage{width:min(calc(100vw - 24px),calc(100dvh - 60px))}}
+    .wrap:fullscreen{max-width:none;width:100%;height:100%;background:#090e18;display:flex;flex-direction:column;padding:10px 16px;overflow:auto}.wrap:fullscreen .header{margin-bottom:10px;flex-shrink:0}.wrap:fullscreen .layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(235px,310px);align-items:start;gap:16px;flex:1;min-height:0}.wrap:fullscreen .game-column{display:flex;flex-direction:column;align-items:center;min-width:0;min-height:0;justify-content:center}.wrap:fullscreen .side{display:grid;grid-template-columns:1fr;align-content:start;gap:10px;max-height:100%;overflow-y:auto}.wrap:fullscreen .side .card{padding:12px}.wrap:fullscreen .side .stat-row{margin:7px 0}.wrap:fullscreen .foot{display:none}
+    .wrap:fullscreen .stage{width:min(100%,calc(100dvh - 120px));max-width:none;padding:8px;flex:0 1 auto}
+    .wrap:fullscreen .board{width:100%;aspect-ratio:1}
+    .wrap:fullscreen .tips{margin:4px 0}
+    .wrap:fullscreen .touch-pad{flex-shrink:0}
+    @media(pointer:coarse){.wrap:fullscreen .stage{width:min(100%,calc(100dvh - 225px))}.wrap:fullscreen .touch-pad{display:flex;width:min(100%,560px);padding:4px 8px}}
+    @media(max-height:520px){.wrap:fullscreen .tips{display:none}.wrap:fullscreen .stage{width:min(100%,calc(100dvh - 62px))}}@media(max-width:760px){.wrap:fullscreen .layout{grid-template-columns:1fr;overflow-y:auto}.wrap:fullscreen .side{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}.wrap:fullscreen .stage{width:min(100%,calc(100dvh - 250px))}.wrap:fullscreen .header{margin-bottom:5px}}
   </style>
 </head>
 <body>
@@ -87,7 +87,7 @@
     'use strict';
     const $ = (id) => document.getElementById(id);
     const canvas = $('game'), ctx = canvas.getContext('2d', {alpha:false});
-    const fullscreenTarget=document.querySelector('.game-column');
+    const fullscreenTarget=document.querySelector('.wrap');
     function updateFullscreenButton(){const active=document.fullscreenElement===fullscreenTarget;const btn=$('fullscreenBtn');btn.textContent=active?'⤢':'⛶';btn.title=active?'Вийти з повного екрана (Esc або F)':'На весь екран (F)';btn.setAttribute('aria-label',btn.title);btn.setAttribute('aria-pressed',String(active));}
     async function toggleFullscreen(){try{if(document.fullscreenElement){await document.exitFullscreen();}else if(fullscreenTarget.requestFullscreen){await fullscreenTarget.requestFullscreen();}else toast('Браузер не підтримує повноекранний режим');}catch(e){toast('Не вдалося відкрити на весь екран');}}
     $('fullscreenBtn').addEventListener('click',toggleFullscreen);
@@ -106,8 +106,9 @@
     const POWER_COLORS={cannon:'#ffd56a',shield:'#69d9ff',rapid:'#ff8c57',heal:'#77e6a1',freeze:'#b3a1ff',pierce:'#ff5eac'};
     const POWER_ICONS={cannon:'★',shield:'◆',rapid:'⚡',heal:'+',freeze:'❄',pierce:'✦'};
     const PEER_OPTIONS={debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
-    let joinAttempt=0,joinTimer=null,hostReady=false,lastBackupSend=0,latestBackup=null,lastHostStateAt=0;
+    let joinAttempt=0,joinTimer=null,hostReady=false,lastBackupSend=0,latestBackup=null,lastHostStateAt=0,hostRegisterTimer=null,hostRegisterAttempts=0;
     function stopJoinTimer(){clearTimeout(joinTimer);joinTimer=null;}
+    function stopHostRegistration(){clearTimeout(hostRegisterTimer);hostRegisterTimer=null;hostRegisterAttempts=0;}
     const newId=()=>++seq;
     let previewMap=null;
     function rand(){ seed=(Math.imul(seed,1664525)+1013904223)>>>0; return seed/4294967296; }
@@ -154,9 +155,18 @@
         for(const x of [7,11])for(const yy of [y-1,y,y+1])place(x,yy,'.');
         for(const x of [8,10])place(x,y-1,'.');
       }
-      // Сталева огорожа прикриває базу від перших пострілів і змушує ворогів маневрувати.
-      for(const [x,y] of [[8,16],[9,16],[10,16],[8,17],[9,17],[10,17],[8,18],[10,18]])place(x,y,'S');
-      for(const [x,y] of [[7,17],[11,17],[7,18],[11,18]])place(x,y,'#');
+      // Огорожа зростає разом зі складністю: ранні хвилі — цегла з
+      // центральною сталевою заслоною; пізніше — дедалі більше сталі.
+      const tier=wave<=2?0:wave<=4?1:wave<=7?2:3;
+      const wall=[[8,16],[9,16],[10,16],[8,17],[9,17],[10,17],[8,18],[10,18]];
+      wall.forEach(([x,y],i)=>{
+        const metal=tier===0?(x===9&&y===16):tier===1?(y===16||x===9):
+          tier===2?(y===16||y===17||x===9):true;
+        place(x,y,metal?'S':'#');
+      });
+      // Немає прямого пострілу по базі навіть на першій хвилі.
+      place(9,16,'S');
+      for(const [x,y] of [[7,17],[11,17],[7,18],[11,18]])place(x,y,tier>=2?'S':'#');
       place(9,18,'B');
       for(const [x,y] of [[5,17],[5,18],[14,17],[14,18],[2,1],[9,1],[17,1]])place(x,y,'.');
       return {map:map.map(row=>row.join('')),biome};
@@ -347,22 +357,27 @@
     window.addEventListener('beforeunload',handoffOnExit);
     function promoteGuest(){
       if(role!=='guest'||!latestBackup||!['playing','connecting','ended'].includes(phase))return false;
-      const recovered=latestBackup;
+      const recovered=JSON.parse(JSON.stringify(latestBackup));
       if(!recovered.players?.[1])return false;
       recovered.players[0]={...recovered.players[1],id:1};
       recovered.players[1]=makePlayer(2);
       recovered.active2=false;
-      game=recovered;remoteGame=null;priorGame=null;role='solo';friendHere=false;
+      game=recovered;remoteGame=null;priorGame=null;role='host';friendHere=false;
       phase=game.gameOver?'ended':'playing';
-      if(peer){try{peer.destroy();}catch(_){ }peer=null;}
+      const oldPeer=peer;
       connection=null;clearKeys();visibleMenu(game.gameOver?'menuEnd':null);
-      toast('Хост відключився — місія продовжується!');
+      if(oldPeer){try{oldPeer.destroy();}catch(_){ }}
+      peer=null;
+      // Повторно займаємо ТОЙ САМИЙ код кімнати: колишній хост
+      // зможе зайти назад другим гравцем, не починаючи нову місію.
+      registerRoomPeer(true);
+      toast('Тепер ти хост! Місія триває, код кімнати не змінився.');
       refreshUI();return true;
     }
     function transmit(force=false){
       if(role!=='host'||!connection?.open||!game)return;
       const now=performance.now();if(!force&&now-lastSend<65)return;lastSend=now;
-      try{connection.send({t:'state',state:pack(game),phase});if(force||now-lastBackupSend>350){connection.send({t:'backup',game:makeBackup()});lastBackupSend=now;}}catch(_){ }
+      try{connection.send({t:'state',state:pack(game),phase});if(force||now-lastBackupSend>250){connection.send({t:'backup',game:makeBackup()});lastBackupSend=now;}}catch(_){ }
     }
     function getView(){
       if(role!=='guest')return game;
@@ -465,7 +480,7 @@
        for(const [id,p] of [['player1Role',p1],['player2Role',p2]])if(p&&(p.id===1||v?.active2))$(id).textContent+=` · гармата ${p.gun||1}${p.shield>0?' 🛡':''}${p.rapid>0?' ⚡':''}${p.pierce>0?' ✦':''}`;
       $('restart').disabled=role==='guest'||role==='none'||phase==='connecting'||phase==='waiting';
       $('modeTitle').textContent=role==='guest'?'ГРАВЕЦЬ 2':role==='host'?'КОМАНДНИЙ РЕЖИМ':role==='solo'?'СОЛО РЕЖИМ':'ГОТОВІ ДО БОЮ?';
-      const label=role==='host'?(friendHere?'Друг у грі': 'Очікуємо друга'):role==='guest'?(connection?.open?'Зв’язок із другом':'З’єднання втрачено'):role==='solo'?'Локальна гра':'Безкоштовно • P2P';
+      const label=role==='host'?(friendHere?'Друг у грі':hostReady?'Кімната відкрита':'Відновлюємо кімнату'):role==='guest'?(connection?.open?'Зв’язок із другом':'З’єднання втрачено'):role==='solo'?'Локальна гра':'Безкоштовно • P2P';
       $('connectionStatus').textContent=label;
       $('netStat').textContent=role==='host'?(friendHere?'Підключено':hostReady?'Кімната відкрита':'Реєстрація...'):role==='guest'?(pingMs!==null?`${pingMs} мс`:'Підключено'):role==='solo'?'Не потрібна':'Не підключена';
       $('helpText').textContent=role==='host'&&roomCode?`Код кімнати: ${roomCode}. Друг може приєднатися під час гри. Поки вкладку відкрито, кімната активна.`:'Один створює кімнату, копіює посилання і надсилає другу. Друг відкриває його, вводить код — і ви граєте разом через інтернет.';
@@ -473,7 +488,7 @@
     function clearKeys(){for(const d of ['up','down','left','right','shoot']){keys[d]=false;remoteKeys[d]=false;}document.querySelectorAll('.touch-pad .pressed').forEach(el=>el.classList.remove('pressed'));}
     function leave(){
       if(role==='host'&&connection?.open&&game){try{connection.send({t:'handoff',game:makeBackup()});}catch(_){ }}
-       stopJoinTimer();joinAttempt=0;hostReady=false;latestBackup=null;lastHostStateAt=0;try{connection?.close();peer?.destroy();}catch(_){ }
+       stopJoinTimer();stopHostRegistration();joinAttempt=0;hostReady=false;latestBackup=null;lastHostStateAt=0;try{connection?.close();peer?.destroy();}catch(_){ }
       connection=null;peer=null;roomCode='';friendHere=false;pingMs=null;role='none';phase='menu';game=null;remoteGame=null;priorGame=null;clearKeys();visibleMenu('menuHome');$('homeError').textContent='';refreshUI();
     }
     function randomCode(){
@@ -523,19 +538,41 @@
       });
       c.on('error',()=>{toast('Помилка з’єднання з другом');});
     }
+    function registerRoomPeer(migrated=false){
+      if(role!=='host'||!roomCode)return;
+      if(peer){try{peer.destroy();}catch(_){ }}
+      const instance=new Peer('tankduo-'+roomCode.toLowerCase(),PEER_OPTIONS);
+      peer=instance;hostReady=false;hostRegisterAttempts++;
+      instance.on('open',()=>{
+        if(role!=='host'||peer!==instance)return;
+        stopHostRegistration();hostReady=true;
+        $('roomCode').textContent=roomCode;$('waitError').textContent='';
+        if(migrated)toast('Кімната '+roomCode+' знову відкрита для друга!');
+        refreshUI();
+      });
+      instance.on('connection',handleHostConnection);
+      instance.on('error',(e)=>{
+        if(role!=='host'||peer!==instance)return;
+        hostReady=false;
+        if(migrated&&e.type==='unavailable-id'&&hostRegisterAttempts<12){
+          try{instance.destroy();}catch(_){ }
+          peer=null;
+          hostRegisterTimer=setTimeout(()=>registerRoomPeer(true),750);
+        }else{
+          const message=e.type==='unavailable-id'?'Код ще зайнятий попереднім хостом.':'Помилка сервера кімнат: '+(e.type||'невідома');
+          $('waitError').textContent=message;
+          toast(message);
+        }
+      });
+      instance.on('disconnected',()=>{
+        if(role==='host'&&peer===instance){hostReady=false;try{instance.reconnect();}catch(_){ }}
+      });
+    }
     function createRoom(){
-      if(!window.Peer){$('homeError').textContent='Не завантажився PeerJS. Перевір інтернет або блокувальник скриптів.';return;}
+      if(!window.Peer){$('homeError').textContent='Не завантажився PeerJS. Перевір інтернет.';return;}
       leave();role='host';phase='waiting';roomCode=randomCode();
       $('roomCode').textContent='••••••';$('waitError').textContent='Підключаємося до мережі...';visibleMenu('menuWait');
-      peer=new Peer('tankduo-'+roomCode.toLowerCase(),PEER_OPTIONS);
-      peer.on('open',()=>{if(role!=='host')return;hostReady=true;$('roomCode').textContent=roomCode;$('waitError').textContent='';refreshUI();});
-      peer.on('connection',handleHostConnection);
-      peer.on('error',(e)=>{
-        if(role!=='host')return;
-        hostReady=false;$('waitError').textContent=e.type==='unavailable-id'?'Цей код уже зайнято. Повернись назад і створи нову кімнату.':'Не вдалося підключитися до мережі. Перевір інтернет.';
-      });
-      peer.on('disconnected',()=>{if(role==='host'){hostReady=false;toast('Відновлюємо зв’язок із сервісом кімнат');try{peer.reconnect();}catch(_){}}});
-      refreshUI();
+      registerRoomPeer();refreshUI();
     }
     function joinRoom(){
       const code=$('roomInput').value.toUpperCase().replace(/[^A-Z2-9]/g,'');
@@ -586,7 +623,7 @@
         step(game,dt);
         if(role==='host')transmit();
       }
-      if(role==='guest'&&phase==='playing'&&latestBackup&&lastHostStateAt&&timestamp-lastHostStateAt>3000){promoteGuest();}
+      if(role==='guest'&&phase==='playing'&&latestBackup&&lastHostStateAt&&timestamp-lastHostStateAt>1600){promoteGuest();}
        if(role==='guest'&&phase==='playing'&&connection?.open){
         if(timestamp-lastInputSend>45){lastInputSend=timestamp;try{connection.send({t:'input',keys:{...keys}});}catch(_){ }}
         if(timestamp-lastPing>3000){lastPing=timestamp;try{connection.send({t:'ping',sent:performance.now()});}catch(_){ }}
