@@ -441,6 +441,7 @@
       if(!t.alive)return;
       if(t.inv>0&&Math.floor(time*9)%2===0)return;
       ctx.save();ctx.translate(Math.round(t.x),Math.round(t.y));
+       if(t.team==='enemy'){const scale=t.kind==='scout'?.82:t.kind==='heavy'?1.18:t.kind==='elite'?1.13:t.kind==='gunner'?1.04:1;ctx.scale(scale,scale);}
       const angle={up:0,right:Math.PI/2,down:Math.PI,left:-Math.PI/2}[t.dir]||0;
       ctx.rotate(angle);ctx.fillStyle='#070b13';ctx.fillRect(-15,-14,30,29);
       ctx.fillStyle='#303c41';ctx.fillRect(-14,-14,6,28);ctx.fillRect(8,-14,6,28);
@@ -579,10 +580,10 @@
       instance.on('error',(e)=>{
         if(role!=='host'||peer!==instance)return;
         hostReady=false;
-        if(migrated&&e.type==='unavailable-id'&&hostRegisterAttempts<12){
+        if(migrated&&e.type==='unavailable-id'&&hostRegisterAttempts<24){
           try{instance.destroy();}catch(_){ }
           peer=null;
-          hostRegisterTimer=setTimeout(()=>registerRoomPeer(true),750);
+          hostRegisterTimer=setTimeout(()=>registerRoomPeer(true),950);
         }else{
           const message=e.type==='unavailable-id'?'Код ще зайнятий попереднім хостом.':'Помилка сервера кімнат: '+(e.type||'невідома');
           $('waitError').textContent=message;
