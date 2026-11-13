@@ -420,7 +420,7 @@
       }
       renderMap(v.map,time,false);
       for(const p of v.powerups||[]){const x=p.x,y=p.y;ctx.fillStyle='#101b2b';ctx.fillRect(x-15,y-15,30,30);ctx.strokeStyle=POWER_COLORS[p.type]||'#fff';ctx.lineWidth=3;ctx.strokeRect(x-13,y-13,26,26);ctx.fillStyle=POWER_COLORS[p.type]||'#fff';ctx.font='bold 24px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(POWER_ICONS[p.type]||'?',x,y+1);}
-       for(const b of v.bullets||[]){ctx.fillStyle=b.team==='enemy'?'#ff8d9c':'#ffec93';ctx.fillRect(b.x-(3+(b.gun||1)*2),b.y-(3+(b.gun||1)*2),6+(b.gun||1)*4,6+(b.gun||1)*4);ctx.fillStyle='#fff9ef';ctx.fillRect(b.x-2,b.y-2,4,4);}
+       for(const b of v.bullets||[]){ctx.fillStyle=b.team==='enemy'?'#ff8d9c':b.pierce?'#ff5eac':(b.gun>=3?'#ff945c':'#ffec93');ctx.fillRect(b.x-(3+(b.gun||1)*2),b.y-(3+(b.gun||1)*2),6+(b.gun||1)*4,6+(b.gun||1)*4);ctx.fillStyle='#fff9ef';ctx.fillRect(b.x-2,b.y-2,4,4);}
       for(const p of v.players||[])if(p.id===1||v.active2)tank(p,COLORS[p.id],time);
       for(const e of v.enemies||[])tank(e,COLORS.enemy,time);
       for(const p of v.fx||[]){ctx.globalAlpha=limit(p.life*3,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-3,p.y-3,6,6);}ctx.globalAlpha=1;
