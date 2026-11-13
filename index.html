@@ -102,9 +102,9 @@
     let snapshotAt=0, peer=null, connection=null, roomCode='', friendHere=false;
     let muted=false, sound=null, pendingToast=0, lastUI=0, lastSend=0, lastInputSend=0, lastPing=0, pingMs=null, lastTick=performance.now();
     let seq=0, seed=1123;
-    const POWER_TYPES=['cannon','shield','rapid','heal','freeze','pierce'];
-    const POWER_COLORS={cannon:'#ffd56a',shield:'#69d9ff',rapid:'#ff8c57',heal:'#77e6a1',freeze:'#b3a1ff',pierce:'#ff5eac'};
-    const POWER_ICONS={cannon:'★',shield:'◆',rapid:'⚡',heal:'+',freeze:'❄',pierce:'✦'};
+    const POWER_TYPES=['cannon','shield','rapid','heal','freeze','pierce','boost','armor'];
+    const POWER_COLORS={cannon:'#ffd56a',shield:'#69d9ff',rapid:'#ff8c57',heal:'#77e6a1',freeze:'#b3a1ff',pierce:'#ff5eac',boost:'#98ff60',armor:'#d8e5ff'};
+    const POWER_ICONS={cannon:'★',shield:'◆',rapid:'⚡',heal:'+',freeze:'❄',pierce:'✦',boost:'➤',armor:'⬡'};
     const PEER_OPTIONS={debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
     let joinAttempt=0,joinTimer=null,hostReady=false,lastBackupSend=0,latestBackup=null,lastHostStateAt=0,hostRegisterTimer=null,hostRegisterAttempts=0;
     function stopJoinTimer(){clearTimeout(joinTimer);joinTimer=null;}
@@ -134,6 +134,14 @@
       } catch(_){}
     }
     const TERRAINS=['Ліс','Озера','Фортеця','Пустеля','Болото'];
+    const ENEMY_CLASSES={
+      basic:{hp:1,speed:65,fire:1.5,color:'#f37783',points:100},
+      scout:{hp:1,speed:118,fire:1.3,color:'#efb65e',points:150},
+      heavy:{hp:3,speed:43,fire:1.9,color:'#a981c5',points:300},
+      gunner:{hp:2,speed:76,fire:.78,color:'#ee7272',points:220},
+      elite:{hp:4,speed:91,fire:.9,color:'#ff5b9c',points:450}
+    };
+    function pickEnemyType(wave){const roll=rand();if(wave>=9&&roll<.12)return 'elite';if(wave>=5&&roll<.34)return 'heavy';if(wave>=4&&roll<.55)return 'gunner';if(wave>=2&&roll<.74)return 'scout';return 'basic';}
     function buildMap(wave){
       const map=Array.from({length:N},()=>Array(N).fill('.'));
       const biome=Math.floor(rand()*TERRAINS.length);
@@ -165,7 +173,7 @@
       return {map:map.map(row=>row.join('')),biome};
     }
     function makePlayer(id){
-      return {id,x:tileCenter(id===1?5:14),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0,pierce:0};
+      return {id,x:tileCenter(id===1?5:14),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0,pierce:0,boost:0,armor:0};
     }
     function makeGame(coop=false){
       seed=(crypto.getRandomValues(new Uint32Array(1))[0])>>>0;seq=0;
@@ -231,12 +239,13 @@
     function writeTile(g,x,y,t){const ty=Math.floor(y/TILE),tx=Math.floor(x/TILE);if(ty>=0&&ty<N&&tx>=0&&tx<N){const row=g.map[ty];g.map[ty]=row.slice(0,tx)+t+row.slice(tx+1);}}
     function killPlayer(g,p){
       if(p.inv>0||p.shield>0||!p.alive)return;
+      if(p.armor>0){p.armor=0;burst(g,p.x,p.y,'#d8e5ff',10);playSound('hit');return;}
       burst(g,p.x,p.y,p.id===1?'#f9d87a':'#7acaff',17);playSound('explode');
       p.hp=Math.max(0,p.hp-1);p.alive=false;p.respawn=p.hp?1.6:0;
     }
     function enemyDeath(g,t){
       if(!t.alive)return;
-      t.alive=false;g.score+=100;g.remaining=Math.max(0,g.remaining-1);g.enemyKills++;
+      t.alive=false;g.score+=ENEMY_CLASSES[t.kind||'basic'].points;g.remaining=Math.max(0,g.remaining-1);g.enemyKills++;
       burst(g,t.x,t.y,'#f58887',15);playSound('explode');
     }
     function spawnPowerup(g){
@@ -255,8 +264,10 @@
        if(power.type==='heal')p.hp=Math.min(3,p.hp+1);
        if(power.type==='freeze')g.freeze=7;
        if(power.type==='pierce')p.pierce=14;
+       if(power.type==='boost')p.boost=13;
+       if(power.type==='armor')p.armor=18;
        g.score+=50;burst(g,p.x,p.y,POWER_COLORS[power.type],14);playSound('win');
-       toast(({cannon:'ГАРМАТУ ПОСИЛЕНО!',shield:'ЩИТ НА 12 СЕКУНД!',rapid:'ШВИДКОСТРІЛЬНІСТЬ!',heal:'+1 ЖИТТЯ!',freeze:'ВОРОГІВ ЗАМОРОЖЕНО!',pierce:'БРОНЕБІЙНІ СНАРЯДИ!'})[power.type]);
+       toast(({cannon:'ГАРМАТУ ПОСИЛЕНО!',shield:'ЩИТ НА 12 СЕКУНД!',rapid:'ШВИДКОСТРІЛЬНІСТЬ!',heal:'+1 ЖИТТЯ!',freeze:'ВОРОГІВ ЗАМОРОЖЕНО!',pierce:'БРОНЕБІЙНІ СНАРЯДИ!',boost:'ТУРБО-ДВИГУН!',armor:'ПОСИЛЕНА БРОНЯ!'})[power.type]);
        power.ttl=0;
     }
     function gameLost(g){
@@ -276,19 +287,20 @@
       for(const p of g.players){
         if(p.id===2&&!g.active2)continue;
         if(!p.alive){p.respawn-=dt;if(p.respawn<=0&&p.hp>0){p.x=tileCenter(p.id===1?5:14);p.y=tileCenter(18);p.alive=true;p.inv=2.4;}continue;}
-        p.cd=Math.max(0,p.cd-dt);p.inv=Math.max(0,p.inv-dt);p.shield=Math.max(0,p.shield-dt);p.rapid=Math.max(0,p.rapid-dt);p.pierce=Math.max(0,p.pierce-dt);
+        p.cd=Math.max(0,p.cd-dt);p.inv=Math.max(0,p.inv-dt);p.shield=Math.max(0,p.shield-dt);p.rapid=Math.max(0,p.rapid-dt);p.pierce=Math.max(0,p.pierce-dt);p.boost=Math.max(0,p.boost-dt);p.armor=Math.max(0,p.armor-dt);
         const input=p.id===1?keys:remoteKeys, d=activeDirection(input);
-        if(d)moveEntity(g,p,d,112*dt);
+        if(d)moveEntity(g,p,d,(p.boost>0?175:112)*dt);
         if(input.shoot&&p.cd===0){spawnBullet(g,p);p.cd=p.rapid>0?.14:.34;}
       }
       g.spawnClock-=dt;
-      if(g.spawnLeft>0&&g.spawnClock<=0&&g.enemies.filter(e=>e.alive).length<5+Math.min(3,g.wave)){
+      if(g.spawnLeft>0&&g.spawnClock<=0&&g.enemies.filter(e=>e.alive).length<4+Math.min(7,Math.floor(g.wave/2))){
         const positions=[2,9,17],start=Math.floor(rand()*positions.length);
         for(let i=0;i<positions.length;i++){
           const tx=positions[(start+i)%positions.length],candidate={x:tileCenter(tx),y:tileCenter(1),alive:true};
           if(clearTank(g,candidate,candidate.x,candidate.y)){
-            const e={id:newId(),x:candidate.x,y:candidate.y,dir:'down',hp:1,team:'enemy',alive:true,cd:between(.7,1.6),turn:between(.4,1.1),speed:between(53,69)+Math.min(25,g.wave*3)};
-            g.enemies.push(e);g.spawnLeft--;g.spawnClock=Math.max(.6,1.9-g.wave*.12);break;
+            const kind=pickEnemyType(g.wave),spec=ENEMY_CLASSES[kind];
+             const e={id:newId(),x:candidate.x,y:candidate.y,dir:'down',hp:spec.hp,maxHp:spec.hp,kind,team:'enemy',alive:true,cd:between(.6,1.3),turn:between(.4,1.1),speed:spec.speed+Math.min(30,g.wave*1.5),fire:spec.fire};
+            g.enemies.push(e);g.spawnLeft--;g.spawnClock=Math.max(.42,1.85-g.wave*.105);break;
           }
         }
         if(g.spawnClock<=0)g.spawnClock=.4;
@@ -302,7 +314,7 @@
           e.dir=weighted[Math.floor(rand()*weighted.length)];e.turn=between(.5,1.8);
         }
         if(!moveEntity(g,e,e.dir,e.speed*dt)){e.turn=0;}
-        if(e.cd<=0){spawnBullet(g,e);e.cd=between(.95,2.1)*Math.max(.68,1-g.wave*.035);}
+        if(e.cd<=0){spawnBullet(g,e);e.cd=between(.75,1.35)*e.fire*Math.max(.6,1-g.wave*.022);}
       }
       // Кулі рухаються невеликими кроками, щоби не проходили крізь стіни на поворотах кадру.
       for(const b of g.bullets){
@@ -321,7 +333,7 @@
             if(!t.alive||(b.team==='enemy'&&t.id===2&&!g.active2))continue;
             if(Math.abs(t.x-b.x)<14+(b.gun-1)*2&&Math.abs(t.y-b.y)<14+(b.gun-1)*2){
               b.alive=false;
-              if(b.team==='enemy')killPlayer(g,t);else enemyDeath(g,t);
+              if(b.team==='enemy')killPlayer(g,t);else {t.hp=Math.max(0,t.hp-(b.gun||1));if(t.hp===0)enemyDeath(g,t);else burst(g,t.x,t.y,'#ffd9a2',5);}
               break;
             }
           }
@@ -334,8 +346,8 @@
     }
     function pack(g){
       return {wave:g.wave,score:g.score,map:g.map,biome:g.biome,remaining:g.remaining,baseAlive:g.baseAlive,active2:g.active2,gameOver:g.gameOver,
-        players:g.players.map(p=>({id:p.id,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid,pierce:p.pierce})),
-        enemies:g.enemies.map(e=>({id:e.id,x:Math.round(e.x*10)/10,y:Math.round(e.y*10)/10,dir:e.dir,alive:e.alive})),
+        players:g.players.map(p=>({id:p.id,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid,pierce:p.pierce,boost:p.boost,armor:p.armor})),
+        enemies:g.enemies.map(e=>({id:e.id,x:Math.round(e.x*10)/10,y:Math.round(e.y*10)/10,dir:e.dir,alive:e.alive,kind:e.kind,hp:e.hp,maxHp:e.maxHp})),
         bullets:g.bullets.map(b=>({id:b.id,x:Math.round(b.x),y:Math.round(b.y),dir:b.dir,team:b.team,gun:b.gun,pierce:b.pierce})),
          powerups:g.powerups.map(p=>({id:p.id,x:p.x,y:p.y,type:p.type})),freeze:g.freeze,
         fx:g.fx.slice(-28).map(p=>({x:Math.round(p.x),y:Math.round(p.y),color:p.color,life:p.life}))};
@@ -421,7 +433,7 @@
       ctx.rotate(angle);ctx.fillStyle='#070b13';ctx.fillRect(-15,-14,30,29);
       ctx.fillStyle='#303c41';ctx.fillRect(-14,-14,6,28);ctx.fillRect(8,-14,6,28);
       ctx.fillStyle=color;ctx.fillRect(-11,-12,22,24);ctx.fillStyle='#101b27';ctx.fillRect(-11,-8,4,4);ctx.fillRect(7,-8,4,4);ctx.fillRect(-11,4,4,4);ctx.fillRect(7,4,4,4);
-      const gun=t.team==='enemy'?1:(t.gun||1);ctx.fillStyle=color;ctx.fillRect(-4-(gun-1)*2,-21-(gun-1)*3,8+(gun-1)*4,20+(gun-1)*3);ctx.fillStyle='#151e2b';ctx.fillRect(-3-(gun-1)*2,-20-(gun-1)*3,6+(gun-1)*4,3);
+      const gun=t.team==='enemy'?(t.kind==='heavy'||t.kind==='elite'?2:1):(t.gun||1);ctx.fillStyle=color;ctx.fillRect(-4-(gun-1)*2,-21-(gun-1)*3,8+(gun-1)*4,20+(gun-1)*3);ctx.fillStyle='#151e2b';ctx.fillRect(-3-(gun-1)*2,-20-(gun-1)*3,6+(gun-1)*4,3);
       ctx.fillStyle=t.team==='enemy'?'#7b2531':'#405267';ctx.fillRect(-7,-7,14,14);ctx.fillStyle=color;ctx.fillRect(-5,-5,10,10);ctx.fillStyle='#fff2c4';ctx.fillRect(-2,-2,4,4);
       ctx.restore();
       if(t.shield>0){ctx.strokeStyle='#67e6ff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(t.x,t.y,21+Math.sin(time*5)*2,0,TAU);ctx.stroke();}
@@ -449,7 +461,7 @@
       for(const p of v.powerups||[]){const x=p.x,y=p.y;ctx.fillStyle='#101b2b';ctx.fillRect(x-15,y-15,30,30);ctx.strokeStyle=POWER_COLORS[p.type]||'#fff';ctx.lineWidth=3;ctx.strokeRect(x-13,y-13,26,26);ctx.fillStyle=POWER_COLORS[p.type]||'#fff';ctx.font='bold 24px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(POWER_ICONS[p.type]||'?',x,y+1);}
        for(const b of v.bullets||[]){ctx.fillStyle=b.team==='enemy'?'#ff8d9c':b.pierce?'#ff5eac':(b.gun>=3?'#ff945c':'#ffec93');ctx.fillRect(b.x-(3+(b.gun||1)*2),b.y-(3+(b.gun||1)*2),6+(b.gun||1)*4,6+(b.gun||1)*4);ctx.fillStyle='#fff9ef';ctx.fillRect(b.x-2,b.y-2,4,4);}
       for(const p of v.players||[])if(p.id===1||v.active2)tank(p,COLORS[p.id],time);
-      for(const e of v.enemies||[])tank(e,COLORS.enemy,time);
+      for(const e of v.enemies||[])tank(e,ENEMY_CLASSES[e.kind||'basic'].color,time);
       for(const p of v.fx||[]){ctx.globalAlpha=limit(p.life*3,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-3,p.y-3,6,6);}ctx.globalAlpha=1;
       renderMap(v.map,time,true);
       if(!v.baseAlive){const x=tileCenter(9),y=tileCenter(18);ctx.fillStyle='#9b3a31';ctx.fillRect(x-12,y-10,25,22);ctx.fillStyle='#2a1b23';ctx.fillRect(x-7,y-4,15,15);}
@@ -473,7 +485,7 @@
       $('player2Hp').textContent=v?.active2&&p2?'♥'.repeat(p2.hp)+'♡'.repeat(Math.max(0,3-p2.hp)):'—';
       $('player1Role').textContent=role==='guest'?'(друг)':'(ви)';
       $('player2Role').textContent=role==='guest'?'(ви)':v?.active2?'(друг)':'(очікуємо)';
-       for(const [id,p] of [['player1Role',p1],['player2Role',p2]])if(p&&(p.id===1||v?.active2))$(id).textContent+=` · гармата ${p.gun||1}${p.shield>0?' 🛡':''}${p.rapid>0?' ⚡':''}${p.pierce>0?' ✦':''}`;
+       for(const [id,p] of [['player1Role',p1],['player2Role',p2]])if(p&&(p.id===1||v?.active2))$(id).textContent+=` · гармата ${p.gun||1}${p.shield>0?' 🛡':''}${p.rapid>0?' ⚡':''}${p.pierce>0?' ✦':''}${p.boost>0?' ➤':''}${p.armor>0?' ⬡':''}`;
       $('restart').disabled=role==='guest'||role==='none'||phase==='connecting'||phase==='waiting';
       $('modeTitle').textContent=role==='guest'?'ГРАВЕЦЬ 2':role==='host'?'КОМАНДНИЙ РЕЖИМ':role==='solo'?'СОЛО РЕЖИМ':'ГОТОВІ ДО БОЮ?';
       const label=role==='host'?(friendHere?'Друг у грі':hostReady?'Кімната відкрита':'Відновлюємо кімнату'):role==='guest'?(connection?.open?'Зв’язок із другом':'З’єднання втрачено'):role==='solo'?'Локальна гра':'Безкоштовно • P2P';
