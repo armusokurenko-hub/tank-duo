@@ -89,6 +89,12 @@
     let snapshotAt=0, peer=null, connection=null, roomCode='', friendHere=false;
     let muted=false, sound=null, pendingToast=0, lastUI=0, lastSend=0, lastInputSend=0, lastPing=0, pingMs=null, lastTick=performance.now();
     let seq=0, seed=1123;
+    const POWER_TYPES=['cannon','shield','rapid','heal','freeze'];
+    const POWER_COLORS={cannon:'#ffd56a',shield:'#69d9ff',rapid:'#ff8c57',heal:'#77e6a1',freeze:'#b3a1ff'};
+    const POWER_ICONS={cannon:'★',shield:'◆',rapid:'⚡',heal:'+',freeze:'❄'};
+    const PEER_OPTIONS={debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
+    let joinAttempt=0,joinTimer=null,hostReady=false;
+    function stopJoinTimer(){clearTimeout(joinTimer);joinTimer=null;}
     const newId=()=>++seq;
     function rand(){ seed=(Math.imul(seed,1664525)+1013904223)>>>0; return seed/4294967296; }
     function between(a,b){return a+rand()*(b-a);}
@@ -134,11 +140,11 @@
       return map.map(row=>row.join(''));
     }
     function makePlayer(id){
-      return {id,x:tileCenter(id===1?5:14),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0};
+      return {id,x:tileCenter(id===1?5:14),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0};
     }
     function makeGame(coop=false){
       seed=1123;seq=0;
-      return {wave:1, score:0, map:buildMap(1), players:[makePlayer(1),makePlayer(2)],enemies:[],bullets:[],fx:[],remaining:12,spawnLeft:12,spawnClock:1.3,enemyKills:0,baseAlive:true,active2:coop, won:false, gameOver:false, stageClock:0, totalTime:0};
+      return {wave:1, score:0, map:buildMap(1), players:[makePlayer(1),makePlayer(2)],enemies:[],bullets:[],fx:[],powerups:[],powerClock:7,freeze:0,remaining:12,spawnLeft:12,spawnClock:1.3,enemyKills:0,baseAlive:true,active2:coop, won:false, gameOver:false, stageClock:0, totalTime:0};
     }
     function begin(coop){
       game=makeGame(coop);remoteGame=null;priorGame=null;phase='playing';visibleMenu(null);refreshUI();
@@ -146,7 +152,7 @@
     }
     function nextWave(g){
       g.wave++;g.map=buildMap(g.wave);g.remaining=12+Math.min(12,(g.wave-1)*4);g.spawnLeft=g.remaining;
-      g.enemies=[];g.bullets=[];g.fx=[];g.spawnClock=1.8;g.stageClock=0;
+      g.enemies=[];g.bullets=[];g.fx=[];g.powerups=[];g.powerClock=5;g.freeze=0;g.spawnClock=1.8;g.stageClock=0;
       g.players.forEach(p=>{if(p.hp<=0)p.hp=2;p.alive=true;p.respawn=0;p.inv=3;p.cd=0;p.x=tileCenter(p.id===1?5:14);p.y=tileCenter(18);p.dir='up';});
       toast(`Хвиля ${g.wave} — утримайте базу!`);playSound('win');
       if(role==='host')transmit(true);
@@ -187,8 +193,9 @@
       return false;
     }
     function spawnBullet(g,t){
+       const gun=t.team==='enemy'?1:(t.gun||1);
       const [dx,dy]=DIR[t.dir];
-      g.bullets.push({id:newId(),x:t.x+dx*19,y:t.y+dy*19,dir:t.dir,team:t.team||'player',owner:t.id,alive:true});
+      g.bullets.push({id:newId(),x:t.x+dx*19,y:t.y+dy*19,dir:t.dir,team:t.team||'player',owner:t.id,gun,alive:true});
       if(t.team!=='enemy'&&(role!=='guest'))playSound('fire');
     }
     function burst(g,x,y,color,count=9){
@@ -197,7 +204,7 @@
     }
     function writeTile(g,x,y,t){const ty=Math.floor(y/TILE),tx=Math.floor(x/TILE);if(ty>=0&&ty<N&&tx>=0&&tx<N){const row=g.map[ty];g.map[ty]=row.slice(0,tx)+t+row.slice(tx+1);}}
     function killPlayer(g,p){
-      if(p.inv>0||!p.alive)return;
+      if(p.inv>0||p.shield>0||!p.alive)return;
       burst(g,p.x,p.y,p.id===1?'#f9d87a':'#7acaff',17);playSound('explode');
       p.hp=Math.max(0,p.hp-1);p.alive=false;p.respawn=p.hp?1.6:0;
     }
@@ -205,6 +212,25 @@
       if(!t.alive)return;
       t.alive=false;g.score+=100;g.remaining=Math.max(0,g.remaining-1);g.enemyKills++;
       burst(g,t.x,t.y,'#f58887',15);playSound('explode');
+    }
+    function spawnPowerup(g){
+       if(g.powerups.length>=2)return;
+       for(let i=0;i<40;i++){
+         const x=tileCenter(1+Math.floor(rand()*18)),y=tileCenter(2+Math.floor(rand()*15));
+         if(tileAt(g,x,y)!=='.'||g.players.some(p=>Math.abs(p.x-x)<35&&Math.abs(p.y-y)<35))continue;
+         const type=POWER_TYPES[Math.floor(rand()*POWER_TYPES.length)];
+         g.powerups.push({id:newId(),x,y,type,ttl:17});break;
+       }
+    }
+    function collectPowerup(g,p,power){
+       if(power.type==='cannon')p.gun=Math.min(3,(p.gun||1)+1);
+       if(power.type==='shield')p.shield=12;
+       if(power.type==='rapid')p.rapid=12;
+       if(power.type==='heal')p.hp=Math.min(3,p.hp+1);
+       if(power.type==='freeze')g.freeze=7;
+       g.score+=50;burst(g,p.x,p.y,POWER_COLORS[power.type],14);playSound('win');
+       toast(({cannon:'ГАРМАТУ ПОСИЛЕНО!',shield:'ЩИТ НА 12 СЕКУНД!',rapid:'ШВИДКОСТРІЛЬНІСТЬ!',heal:'+1 ЖИТТЯ!',freeze:'ВОРОГІВ ЗАМОРОЖЕНО!'})[power.type]);
+       power.ttl=0;
     }
     function gameLost(g){
       if(g.gameOver)return;
@@ -216,13 +242,17 @@
     }
     function step(g,dt){
       g.totalTime+=dt;g.stageClock+=dt;
+       g.powerClock-=dt;g.freeze=Math.max(0,g.freeze-dt);
+       if(g.powerClock<=0){spawnPowerup(g);g.powerClock=between(9,15);}
+       for(const power of g.powerups){power.ttl-=dt;if(power.ttl>0)for(const p of g.players){if(p.alive&&(p.id===1||g.active2)&&Math.hypot(p.x-power.x,p.y-power.y)<24){collectPowerup(g,p,power);break;}}}
+       g.powerups=g.powerups.filter(p=>p.ttl>0);
       for(const p of g.players){
         if(p.id===2&&!g.active2)continue;
         if(!p.alive){p.respawn-=dt;if(p.respawn<=0&&p.hp>0){p.x=tileCenter(p.id===1?5:14);p.y=tileCenter(18);p.alive=true;p.inv=2.4;}continue;}
-        p.cd=Math.max(0,p.cd-dt);p.inv=Math.max(0,p.inv-dt);
+        p.cd=Math.max(0,p.cd-dt);p.inv=Math.max(0,p.inv-dt);p.shield=Math.max(0,p.shield-dt);p.rapid=Math.max(0,p.rapid-dt);
         const input=p.id===1?keys:remoteKeys, d=activeDirection(input);
         if(d)moveEntity(g,p,d,112*dt);
-        if(input.shoot&&p.cd===0){spawnBullet(g,p);p.cd=.34;}
+        if(input.shoot&&p.cd===0){spawnBullet(g,p);p.cd=p.rapid>0?.14:.34;}
       }
       g.spawnClock-=dt;
       if(g.spawnLeft>0&&g.spawnClock<=0&&g.enemies.filter(e=>e.alive).length<5+Math.min(3,g.wave)){
@@ -238,7 +268,7 @@
       }
       for(const e of g.enemies){
         if(!e.alive)continue;
-        e.cd-=dt;e.turn-=dt;
+        if(g.freeze>0)continue;e.cd-=dt;e.turn-=dt;
         if(e.turn<=0){
           const wantBase=rand()<.62;
           const weighted=wantBase?(e.x<tileCenter(9)?['down','right','down','left']:['down','left','down','right']):['down','left','right','up'];
@@ -250,7 +280,7 @@
       // Кулі рухаються невеликими кроками, щоби не проходили крізь стіни на поворотах кадру.
       for(const b of g.bullets){
         if(!b.alive)continue;
-        const [dx,dy]=DIR[b.dir],speed=b.team==='enemy'?182:270;
+        const [dx,dy]=DIR[b.dir],speed=b.team==='enemy'?182:270+(b.gun-1)*55;
         const steps=Math.max(1,Math.ceil(speed*dt/7));
         for(let i=0;i<steps&&b.alive;i++){
           b.x+=dx*speed*dt/steps;b.y+=dy*speed*dt/steps;
@@ -258,11 +288,11 @@
           const hit=tileAt(g,b.x,b.y);
           if(hit==='B'){b.alive=false;g.baseAlive=false;burst(g,b.x,b.y,'#f6cb67',30);gameLost(g);break;}
           if(hit==='#'){writeTile(g,b.x,b.y,'.');b.alive=false;burst(g,b.x,b.y,'#d28c65',5);break;}
-          if(hit==='S'){b.alive=false;burst(g,b.x,b.y,'#a6b7cd',4);break;}
+          if(hit==='S'){if(b.team!=='enemy'&&b.gun>=3)writeTile(g,b.x,b.y,'.');b.alive=false;burst(g,b.x,b.y,'#a6b7cd',4);break;}
           const targets=b.team==='enemy'?g.players:g.enemies;
           for(const t of targets){
             if(!t.alive||(b.team==='enemy'&&t.id===2&&!g.active2))continue;
-            if(Math.abs(t.x-b.x)<14&&Math.abs(t.y-b.y)<14){
+            if(Math.abs(t.x-b.x)<14+(b.gun-1)*2&&Math.abs(t.y-b.y)<14+(b.gun-1)*2){
               b.alive=false;
               if(b.team==='enemy')killPlayer(g,t);else enemyDeath(g,t);
               break;
@@ -277,9 +307,10 @@
     }
     function pack(g){
       return {wave:g.wave,score:g.score,map:g.map,remaining:g.remaining,baseAlive:g.baseAlive,active2:g.active2,gameOver:g.gameOver,
-        players:g.players.map(p=>({id:p.id,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv})),
+        players:g.players.map(p=>({id:p.id,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid})),
         enemies:g.enemies.map(e=>({id:e.id,x:Math.round(e.x*10)/10,y:Math.round(e.y*10)/10,dir:e.dir,alive:e.alive})),
-        bullets:g.bullets.map(b=>({id:b.id,x:Math.round(b.x),y:Math.round(b.y),dir:b.dir,team:b.team})),
+        bullets:g.bullets.map(b=>({id:b.id,x:Math.round(b.x),y:Math.round(b.y),dir:b.dir,team:b.team,gun:b.gun})),
+         powerups:g.powerups.map(p=>({id:p.id,x:p.x,y:p.y,type:p.type})),freeze:g.freeze,
         fx:g.fx.slice(-28).map(p=>({x:Math.round(p.x),y:Math.round(p.y),color:p.color,life:p.life}))};
     }
     function transmit(force=false){
@@ -333,10 +364,12 @@
       ctx.rotate(angle);ctx.fillStyle='#070b13';ctx.fillRect(-15,-14,30,29);
       ctx.fillStyle='#303c41';ctx.fillRect(-14,-14,6,28);ctx.fillRect(8,-14,6,28);
       ctx.fillStyle=color;ctx.fillRect(-11,-12,22,24);ctx.fillStyle='#101b27';ctx.fillRect(-11,-8,4,4);ctx.fillRect(7,-8,4,4);ctx.fillRect(-11,4,4,4);ctx.fillRect(7,4,4,4);
-      ctx.fillStyle=color;ctx.fillRect(-4,-21,8,20);ctx.fillStyle='#151e2b';ctx.fillRect(-3,-20,6,3);
+      const gun=t.team==='enemy'?1:(t.gun||1);ctx.fillStyle=color;ctx.fillRect(-4-(gun-1)*2,-21-(gun-1)*3,8+(gun-1)*4,20+(gun-1)*3);ctx.fillStyle='#151e2b';ctx.fillRect(-3-(gun-1)*2,-20-(gun-1)*3,6+(gun-1)*4,3);
       ctx.fillStyle=t.team==='enemy'?'#7b2531':'#405267';ctx.fillRect(-7,-7,14,14);ctx.fillStyle=color;ctx.fillRect(-5,-5,10,10);ctx.fillStyle='#fff2c4';ctx.fillRect(-2,-2,4,4);
       ctx.restore();
-      if(t.inv>0){ctx.strokeStyle='rgba(176,227,255,.47)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(t.x,t.y,18,0,TAU);ctx.stroke();}
+      if(t.shield>0){ctx.strokeStyle='#67e6ff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(t.x,t.y,21+Math.sin(time*5)*2,0,TAU);ctx.stroke();}
+       if(t.rapid>0){ctx.strokeStyle='#ff9e55';ctx.lineWidth=2;ctx.strokeRect(t.x-18,t.y-18,36,36);}
+       if(t.inv>0){ctx.strokeStyle='rgba(176,227,255,.47)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(t.x,t.y,18,0,TAU);ctx.stroke();}
     }
     function background(time){
       ctx.fillStyle='#141e23';ctx.fillRect(0,0,SIZE,SIZE);
@@ -355,7 +388,8 @@
         renderMap(map,time,true);return;
       }
       renderMap(v.map,time,false);
-      for(const b of v.bullets||[]){ctx.fillStyle=b.team==='enemy'?'#ff8d9c':'#ffec93';ctx.fillRect(b.x-4,b.y-4,8,8);ctx.fillStyle='#fff9ef';ctx.fillRect(b.x-2,b.y-2,4,4);}
+      for(const p of v.powerups||[]){const x=p.x,y=p.y;ctx.fillStyle='#101b2b';ctx.fillRect(x-15,y-15,30,30);ctx.strokeStyle=POWER_COLORS[p.type]||'#fff';ctx.lineWidth=3;ctx.strokeRect(x-13,y-13,26,26);ctx.fillStyle=POWER_COLORS[p.type]||'#fff';ctx.font='bold 24px system-ui';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(POWER_ICONS[p.type]||'?',x,y+1);}
+       for(const b of v.bullets||[]){ctx.fillStyle=b.team==='enemy'?'#ff8d9c':'#ffec93';ctx.fillRect(b.x-(3+(b.gun||1)*2),b.y-(3+(b.gun||1)*2),6+(b.gun||1)*4,6+(b.gun||1)*4);ctx.fillStyle='#fff9ef';ctx.fillRect(b.x-2,b.y-2,4,4);}
       for(const p of v.players||[])if(p.id===1||v.active2)tank(p,COLORS[p.id],time);
       for(const e of v.enemies||[])tank(e,COLORS.enemy,time);
       for(const p of v.fx||[]){ctx.globalAlpha=limit(p.life*3,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-3,p.y-3,6,6);}ctx.globalAlpha=1;
@@ -381,16 +415,17 @@
       $('player2Hp').textContent=v?.active2&&p2?'♥'.repeat(p2.hp)+'♡'.repeat(Math.max(0,3-p2.hp)):'—';
       $('player1Role').textContent=role==='guest'?'(друг)':'(ви)';
       $('player2Role').textContent=role==='guest'?'(ви)':v?.active2?'(друг)':'(очікуємо)';
+       for(const [id,p] of [['player1Role',p1],['player2Role',p2]])if(p&&(p.id===1||v?.active2))$(id).textContent+=` · гармата ${p.gun||1}${p.shield>0?' 🛡':''}${p.rapid>0?' ⚡':''}`;
       $('restart').disabled=role==='guest'||role==='none'||phase==='connecting'||phase==='waiting';
       $('modeTitle').textContent=role==='guest'?'ГРАВЕЦЬ 2':role==='host'?'КОМАНДНИЙ РЕЖИМ':role==='solo'?'СОЛО РЕЖИМ':'ГОТОВІ ДО БОЮ?';
       const label=role==='host'?(friendHere?'Друг у грі': 'Очікуємо друга'):role==='guest'?(connection?.open?'Зв’язок із другом':'З’єднання втрачено'):role==='solo'?'Локальна гра':'Безкоштовно • P2P';
       $('connectionStatus').textContent=label;
-      $('netStat').textContent=role==='host'?(friendHere?'Підключено':'Кімната відкрита'):role==='guest'?(pingMs!==null?`${pingMs} мс`:'Підключено'):role==='solo'?'Не потрібна':'Не підключена';
+      $('netStat').textContent=role==='host'?(friendHere?'Підключено':hostReady?'Кімната відкрита':'Реєстрація...'):role==='guest'?(pingMs!==null?`${pingMs} мс`:'Підключено'):role==='solo'?'Не потрібна':'Не підключена';
       $('helpText').textContent=role==='host'&&roomCode?`Код кімнати: ${roomCode}. Друг може приєднатися під час гри. Поки вкладку відкрито, кімната активна.`:'Один створює кімнату, копіює посилання і надсилає другу. Друг відкриває його, вводить код — і ви граєте разом через інтернет.';
     }
     function clearKeys(){for(const d of ['up','down','left','right','shoot']){keys[d]=false;remoteKeys[d]=false;}document.querySelectorAll('.touch-pad .pressed').forEach(el=>el.classList.remove('pressed'));}
     function leave(){
-      try{connection?.close();peer?.destroy();}catch(_){ }
+      stopJoinTimer();joinAttempt=0;hostReady=false;try{connection?.close();peer?.destroy();}catch(_){ }
       connection=null;peer=null;roomCode='';friendHere=false;pingMs=null;role='none';phase='menu';game=null;remoteGame=null;priorGame=null;clearKeys();visibleMenu('menuHome');$('homeError').textContent='';refreshUI();
     }
     function randomCode(){
@@ -443,14 +478,14 @@
       if(!window.Peer){$('homeError').textContent='Не завантажився PeerJS. Перевір інтернет або блокувальник скриптів.';return;}
       leave();role='host';phase='waiting';roomCode=randomCode();
       $('roomCode').textContent='••••••';$('waitError').textContent='Підключаємося до мережі...';visibleMenu('menuWait');
-      peer=new Peer('tankduo-'+roomCode.toLowerCase(),{debug:0});
-      peer.on('open',()=>{if(role!=='host')return;$('roomCode').textContent=roomCode;$('waitError').textContent='';refreshUI();});
+      peer=new Peer('tankduo-'+roomCode.toLowerCase(),PEER_OPTIONS);
+      peer.on('open',()=>{if(role!=='host')return;hostReady=true;$('roomCode').textContent=roomCode;$('waitError').textContent='';refreshUI();});
       peer.on('connection',handleHostConnection);
       peer.on('error',(e)=>{
         if(role!=='host')return;
-        $('waitError').textContent=e.type==='unavailable-id'?'Цей код уже зайнято. Повернись назад і створи нову кімнату.':'Не вдалося підключитися до мережі. Перевір інтернет.';
+        hostReady=false;$('waitError').textContent=e.type==='unavailable-id'?'Цей код уже зайнято. Повернись назад і створи нову кімнату.':'Не вдалося підключитися до мережі. Перевір інтернет.';
       });
-      peer.on('disconnected',()=>{if(role==='host')toast('Зв’язок із сервісом кімнат втрачено');});
+      peer.on('disconnected',()=>{if(role==='host'){hostReady=false;toast('Відновлюємо зв’язок із сервісом кімнат');try{peer.reconnect();}catch(_){}}});
       refreshUI();
     }
     function joinRoom(){
@@ -458,12 +493,12 @@
       if(code.length!==6){$('homeError').textContent='Введи шестисимвольний код кімнати.';return;}
       if(!window.Peer){$('homeError').textContent='Не завантажився PeerJS. Перевір інтернет.';return;}
       leave();role='guest';phase='connecting';roomCode=code;visibleMenu('menuConnect');$('connectInfo').textContent='Підключаємося до кімнати '+code+'...';$('connectError').textContent='';
-      peer=new Peer(undefined,{debug:0});
+      peer=new Peer(undefined,PEER_OPTIONS);
       peer.on('open',()=>{
         if(role!=='guest')return;
-        const c=peer.connect('tankduo-'+code.toLowerCase(),{reliable:true,serialization:'json'});connection=c;
-        setTimeout(()=>{if(role==='guest'&&phase==='connecting'&&connection===c&&!remoteGame){$('connectError').textContent='З’єднання затримується. Перевірте код і спробуйте іншу мережу, якщо не вдається підключитися.';}},12000);
-        c.on('open',()=>{$('connectInfo').textContent='З’єднання встановлено. Очікуємо ігрове поле...';refreshUI();});
+        const c=peer.connect('tankduo-'+code.toLowerCase(),{reliable:true,serialization:'json'});connection=c;joinAttempt=1;
+        joinTimer=setTimeout(()=>{if(role==='guest'&&phase==='connecting'&&connection===c&&!remoteGame){$('connectError').textContent='Пряме з’єднання не встановлено (NAT/фаєрвол). Спробуйте мобільний інтернет: TURN поки не налаштовано.';}},12000);
+        c.on('open',()=>{stopJoinTimer();$('connectError').textContent='';$('connectInfo').textContent='З’єднання встановлено. Очікуємо ігрове поле...';refreshUI();});
         c.on('data',(data)=>{
           if(role!=='guest'||connection!==c||!data||typeof data!=='object')return;
           if(data.t==='full'){$('connectError').textContent='У кімнаті вже грають удвох.';c.close();return;}
@@ -489,9 +524,9 @@
         c.on('error',()=>{$('connectError').textContent='Помилка підключення. Перевір код і спробуй ще раз.';});
       });
       peer.on('error',(e)=>{
-        if(role==='guest'){$('connectError').textContent=e.type==='peer-unavailable'?'Кімнату не знайдено. Перевір код і чи друг відкрив гру.':'Не вдалося з’єднатися. Можливо, мережа блокує пряме P2P-з’єднання.';}
+        if(role==='guest'){$('connectError').textContent=e.type==='peer-unavailable'?'Кімнату не знайдено на сервері. Хост має дочекатися появи коду і не закривати вкладку.':'Не вдалося з’єднатися. Можливо, мережа блокує пряме P2P-з’єднання.';}
       });
-      peer.on('disconnected',()=>{if(role==='guest')toast('Втрачено з’єднання із сервісом кімнат');});
+      peer.on('disconnected',()=>{if(role==='guest'){toast('Відновлюємо сервіс кімнат');try{peer.reconnect();}catch(_){}}});
       refreshUI();
     }
     function frame(timestamp){
