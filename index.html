@@ -452,6 +452,14 @@
       }
       return {...remoteGame,players,enemies:interp(priorGame.enemies||[],remoteGame.enemies||[]),bullets:interp(priorGame.bullets||[],remoteGame.bullets||[])};
     }
+    function roundBox(x,y,w,h,r,fill){
+      // Shared rounded shape primitive used by the updated tanks, terrain and effects.
+      ctx.fillStyle=fill;
+      ctx.beginPath();
+      if(typeof ctx.roundRect==='function')ctx.roundRect(x,y,w,h,Math.min(r,w/2,h/2));
+      else {const q=Math.min(r,w/2,h/2);ctx.moveTo(x+q,y);ctx.lineTo(x+w-q,y);ctx.quadraticCurveTo(x+w,y,x+w,y+q);ctx.lineTo(x+w,y+h-q);ctx.quadraticCurveTo(x+w,y+h,x+w-q,y+h);ctx.lineTo(x+q,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-q);ctx.lineTo(x,y+q);ctx.quadraticCurveTo(x,y,x+q,y);}
+      ctx.closePath();ctx.fill();
+    }
     function brick(x,y){
       roundBox(x+1,y+1,30,30,3,'#432d2f');
       const g=ctx.createLinearGradient(x,y,x,y+32);g.addColorStop(0,'#e8a57c');g.addColorStop(.55,'#ae6050');g.addColorStop(1,'#703938');
