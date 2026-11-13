@@ -138,35 +138,28 @@
       const map=Array.from({length:N},()=>Array(N).fill('.'));
       const biome=Math.floor(rand()*TERRAINS.length);
       const place=(x,y,t)=>{if(x>=0&&x<N&&y>=0&&y<N)map[y][x]=t;};
-      const safe=(x,y)=>([2,9,17].includes(x)&&y<=16)||(y===15&&x>=2&&x<=17)||y>=16||y<=2;
+      const safe=(x,y)=>([2,9,17].includes(x)&&y<=15)||(y===15&&x>=2&&x<=17)||y>=16||y<=2;
       const kinds=[['*','*','#','S','~'],['~','~','*','#','S'],['#','#','S','S','*'],['#','*','S','~'],['~','*','#','S']][biome];
-      for(let i=0;i<42+Math.min(wave,12);i++){
-        const x=1+Math.floor(rand()*17),y=3+Math.floor(rand()*12),w=1+Math.floor(rand()*3),h=1+Math.floor(rand()*3),type=kinds[Math.floor(rand()*kinds.length)];
-        for(let yy=y;yy<y+h&&yy<16;yy++)for(let xx=x;xx<x+w&&xx<19;xx++){
+      const density=Math.min(88,17+wave*5);
+      for(let k=0;k<density;k++){
+        const x=1+Math.floor(rand()*17),y=3+Math.floor(rand()*12);
+        const size=wave<3?1:wave<6?2:3,w=1+Math.floor(rand()*size),h=1+Math.floor(rand()*size);
+        const type=kinds[Math.floor(rand()*kinds.length)];
+        for(let yy=y;yy<y+h&&yy<16;yy++)for(let xx=x;xx<x+w&&xx<19;xx++)
           if(!safe(xx,yy)&&map[yy][xx]==='.'&&rand()>.12)place(xx,yy,type);
-        }
       }
-      for(let y=1;y<=16;y++)for(const x of [2,9,17])place(x,y,'.');
+      if(wave>=4)for(const [x,y] of [[4,9],[5,9],[14,9],[15,9]])if(!safe(x,y))place(x,y,biome===1?'~':'*');
+      if(wave>=7)for(const [x,y] of [[4,12],[5,12],[14,12],[15,12]])if(!safe(x,y))place(x,y,biome===2?'S':'#');
+      for(let y=1;y<=15;y++)for(const x of [2,9,17])place(x,y,'.');
       for(let x=2;x<=17;x++)place(x,15,'.');
-      // Зигзаги на центральному шляху: не можна стріляти з точки спавну прямо по базі.
-      // Бічні обходи залишаються доступними навіть без бронебійних снарядів.
-      for(const y of [7,12]){
-        for(const x of [8,9,10])place(x,y,'S');
+      for(const y of wave<=2?[10]:wave<=5?[7,12]:[5,9,13]){
+        for(const x of [8,9,10])place(x,y,wave>=8?'S':'#');
         for(const x of [7,11])for(const yy of [y-1,y,y+1])place(x,yy,'.');
-        for(const x of [8,10])place(x,y-1,'.');
       }
-      // Огорожа зростає разом зі складністю: ранні хвилі — цегла з
-      // центральною сталевою заслоною; пізніше — дедалі більше сталі.
-      const tier=wave<=2?0:wave<=4?1:wave<=7?2:3;
-      const wall=[[8,16],[9,16],[10,16],[8,17],[9,17],[10,17],[8,18],[10,18]];
-      wall.forEach(([x,y],i)=>{
-        const metal=tier===0?(x===9&&y===16):tier===1?(y===16||x===9):
-          tier===2?(y===16||y===17||x===9):true;
-        place(x,y,metal?'S':'#');
-      });
-      // Немає прямого пострілу по базі навіть на першій хвилі.
-      place(9,16,'S');
-      for(const [x,y] of [[7,17],[11,17],[7,18],[11,18]])place(x,y,tier>=2?'S':'#');
+      const inner=[[8,17],[9,17],[10,17],[8,18],[10,18]];
+      const outer=[[8,16],[9,16],[10,16],[7,17],[11,17],[7,18],[11,18]];
+      for(const [x,y] of inner)place(x,y,wave>=6?'S':'#');
+      if(wave>=2)for(const [x,y] of outer)place(x,y,wave>=8?'S':wave>=4&&x===9?'S':'#');
       place(9,18,'B');
       for(const [x,y] of [[5,17],[5,18],[14,17],[14,18],[2,1],[9,1],[17,1]])place(x,y,'.');
       return {map:map.map(row=>row.join('')),biome};
@@ -184,7 +177,7 @@
       if(role==='host') transmit(true);
     }
     function nextWave(g){
-      g.wave++;const level=buildMap(g.wave);g.map=level.map;g.biome=level.biome;g.remaining=12+Math.min(12,(g.wave-1)*4);g.spawnLeft=g.remaining;
+      g.wave++;const level=buildMap(g.wave);g.map=level.map;g.biome=level.biome;g.remaining=12+Math.min(32,(g.wave-1)*5);g.spawnLeft=g.remaining;
       g.enemies=[];g.bullets=[];g.fx=[];g.powerups=[];g.powerClock=5;g.freeze=0;g.spawnClock=1.8;g.stageClock=0;
       g.players.forEach(p=>{if(p.hp<=0)p.hp=2;p.alive=true;p.respawn=0;p.inv=3;p.cd=0;p.x=tileCenter(p.id===1?5:14);p.y=tileCenter(18);p.dir='up';});
       toast(`Хвиля ${g.wave} — утримайте базу!`);playSound('win');
