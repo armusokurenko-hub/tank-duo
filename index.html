@@ -67,6 +67,10 @@
     #tankColor{width:66px;height:36px;padding:3px;border:1px solid #6a8095;border-radius:9px;background:#15273a;cursor:pointer}
     #tankColor::-webkit-color-swatch-wrapper{padding:0}
     #tankColor::-webkit-color-swatch{border:0;border-radius:6px}
+
+    .player-metrics{display:flex;flex-direction:column;align-items:flex-end;gap:2px;white-space:nowrap}
+    .player-score{font:800 13px/1.2 ui-monospace,Consolas,monospace;color:#f8d681}
+    .player{gap:8px;min-width:0}.player-left{min-width:0}.player-left>span{overflow-wrap:anywhere}
   </style>
 </head>
 <body>
@@ -117,8 +121,8 @@
           <div class="stat-row"><span class="stat-name">Ворогів залишилось</span><span class="stat-value" id="enemiesStat">12</span></div>
           <div class="stat-row"><span class="stat-name">Очки команди</span><span class="stat-value" id="scoreStat">0</span></div><div class="stat-row"><span class="stat-name">Захист бази</span><strong class="stat-value" id="baseShieldStat" style="color:#58f7d6;font-size:15px">Неактивний</strong></div>
           <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Команда</div>
-          <div class="player"><div class="player-left"><i class="color-dot p1"></i><span>Гравець 1 <span class="tiny" id="player1Role">(ви)</span></span></div><span class="hearts" id="player1Hp">♥♥♥</span></div>
-          <div class="player"><div class="player-left"><i class="color-dot p2"></i><span>Гравець 2 <span class="tiny" id="player2Role">(очікуємо)</span></span></div><span class="hearts" id="player2Hp">—</span></div>
+          <div class="player"><div class="player-left"><i class="color-dot p1"></i><span>Гравець 1 <span class="tiny" id="player1Role">(ви)</span></span></div><span class="player-metrics"><strong class="player-score" id="player1Score">0 очок</strong><span class="hearts" id="player1Hp">♥♥♥</span></span></div>
+          <div class="player"><div class="player-left"><i class="color-dot p2"></i><span>Гравець 2 <span class="tiny" id="player2Role">(очікуємо)</span></span></div><span class="player-metrics"><strong class="player-score" id="player2Score">0 очок</strong><span class="hearts" id="player2Hp">—</span></span></div>
           <div class="tank-color-row"><label for="tankColor" class="card-label" style="margin:0">Колір мого танка</label><input id="tankColor" type="color" value="#f3d46e" aria-label="Колір мого танка"></div><div class="bottom-actions"><button id="goMenu" type="button" class="secondary">⌂ В меню</button><button id="restart" type="button" class="secondary">↺ Перезапуск</button></div>
         </div>
         <div class="card"><div class="card-label">Як керувати</div><div class="control-line"><span class="control-keys"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></span><span>рух танка</span></div>
@@ -246,7 +250,7 @@
       return {map:map.map(row=>row.join('')),biome};
     }
     function makePlayer(id){
-      return {id,x:tileCenter(PLAYER_X[id-1]),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0,pierce:0,boost:0,armor:0,color:id===1?localColor:COLORS[2]};
+      return {id,x:tileCenter(PLAYER_X[id-1]),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0,pierce:0,boost:0,armor:0,color:id===1?localColor:COLORS[2],score:0,kills:0};
     }
     function makeGame(coop=false){
       seed=(crypto.getRandomValues(new Uint32Array(1))[0])>>>0;seq=0;
@@ -316,9 +320,10 @@
       burst(g,p.x,p.y,p.id===1?'#f9d87a':'#7acaff',17);playSound('explode');
       p.hp=Math.max(0,p.hp-1);p.alive=false;p.respawn=p.hp?1.6:0;
     }
-    function enemyDeath(g,t){
+    function enemyDeath(g,t,owner){
       if(!t.alive)return;
-      t.alive=false;g.score+=ENEMY_CLASSES[t.kind||'basic'].points;g.remaining=Math.max(0,g.remaining-1);g.enemyKills++;
+      const points=ENEMY_CLASSES[t.kind||'basic'].points;t.alive=false;g.score+=points;g.remaining=Math.max(0,g.remaining-1);g.enemyKills++;
+       const shooter=g.players.find(p=>p.id===owner);if(shooter){shooter.score=(shooter.score||0)+points;shooter.kills=(shooter.kills||0)+1;}
       burst(g,t.x,t.y,'#f58887',15);playSound('explode');
     }
     function spawnPowerup(g){
@@ -340,7 +345,7 @@
        if(power.type==='boost')p.boost=13;
        if(power.type==='armor')p.armor=18;
        if(power.type==='baseShield')g.baseShield=Math.max(g.baseShield||0,20);
-       g.score+=50;burst(g,p.x,p.y,POWER_COLORS[power.type],14);playSound('win');
+       g.score+=50;p.score=(p.score||0)+50;burst(g,p.x,p.y,POWER_COLORS[power.type],14);playSound('win');
        toast(({cannon:'ГАРМАТУ ПОСИЛЕНО!',shield:'ЩИТ НА 12 СЕКУНД!',rapid:'ШВИДКОСТРІЛЬНІСТЬ!',heal:'+1 ЖИТТЯ!',freeze:'ВОРОГІВ ЗАМОРОЖЕНО!',pierce:'БРОНЕБІЙНІ СНАРЯДИ!',boost:'ТУРБО-ДВИГУН!',armor:'ПОСИЛЕНА БРОНЯ!',baseShield:'ЩИТ БАЗИ — 20 СЕКУНД!'})[power.type]);
        power.ttl=0;
     }
@@ -348,7 +353,7 @@
       if(g.gameOver)return;
       g.gameOver=true;phase='ended';
       $('endIcon').textContent='💥';$('endTitle').textContent='БАЗУ ВТРАЧЕНО';
-      $('endText').textContent=`Ви дійшли до хвилі ${g.wave}. Очки команди: ${g.score}. Спробуйте ще раз!`;
+      $('endText').textContent=`Хвиля ${g.wave}. Команда: ${g.score} · Гравець 1: ${g.players[0]?.score||0} · Гравець 2: ${g.players[1]?.score||0}.`;
       $('retry').hidden=role==='guest';visibleMenu('menuEnd');playSound('hit');
       if(role==='host')transmit(true);
     }
@@ -407,7 +412,7 @@
             if(!t.alive||(b.team==='enemy'&&t.id===2&&!g.active2))continue;
             if(Math.abs(t.x-b.x)<14+(b.gun-1)*2&&Math.abs(t.y-b.y)<14+(b.gun-1)*2){
               b.alive=false;
-              if(b.team==='enemy')killPlayer(g,t);else {t.hp=Math.max(0,t.hp-(b.gun||1));if(t.hp===0)enemyDeath(g,t);else burst(g,t.x,t.y,'#ffd9a2',5);}
+              if(b.team==='enemy')killPlayer(g,t);else {t.hp=Math.max(0,t.hp-(b.gun||1));if(t.hp===0)enemyDeath(g,t,b.owner);else burst(g,t.x,t.y,'#ffd9a2',5);}
               break;
             }
           }
@@ -420,7 +425,7 @@
     }
     function pack(g){
       return {wave:g.wave,score:g.score,map:g.map,biome:g.biome,remaining:g.remaining,baseAlive:g.baseAlive,baseShield:g.baseShield||0,active2:g.active2,gameOver:g.gameOver,
-        players:g.players.map(p=>({id:p.id,color:p.color,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid,pierce:p.pierce,boost:p.boost,armor:p.armor})),
+        players:g.players.map(p=>({id:p.id,color:p.color,score:p.score||0,kills:p.kills||0,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid,pierce:p.pierce,boost:p.boost,armor:p.armor})),
         enemies:g.enemies.map(e=>({id:e.id,x:Math.round(e.x*10)/10,y:Math.round(e.y*10)/10,dir:e.dir,alive:e.alive,kind:e.kind,hp:e.hp,maxHp:e.maxHp})),
         bullets:g.bullets.map(b=>({id:b.id,x:Math.round(b.x),y:Math.round(b.y),dir:b.dir,team:b.team,gun:b.gun,pierce:b.pierce})),
          powerups:g.powerups.map(p=>({id:p.id,x:p.x,y:p.y,type:p.type})),freeze:g.freeze,
@@ -683,6 +688,8 @@
       const p1=v?.players?.find(p=>p.id===1),p2=v?.players?.find(p=>p.id===2);
       $('player1Hp').textContent=p1?'♥'.repeat(p1.hp)+'♡'.repeat(Math.max(0,3-p1.hp)):'♥♥♥';
       $('player2Hp').textContent=v?.active2&&p2?'♥'.repeat(p2.hp)+'♡'.repeat(Math.max(0,3-p2.hp)):'—';
+       $('player1Score').textContent=((p1?.score)||0).toLocaleString('uk-UA')+' очок';
+       $('player2Score').textContent=((p2?.score)||0).toLocaleString('uk-UA')+' очок';
       $('player1Role').textContent=role==='guest'?'(друг)':'(ви)';
        document.querySelector('.color-dot.p1').style.backgroundColor=p1?.color||COLORS[1];
        document.querySelector('.color-dot.p2').style.backgroundColor=p2?.color||COLORS[2];
