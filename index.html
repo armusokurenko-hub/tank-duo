@@ -347,7 +347,7 @@
          powerups:g.powerups.map(p=>({id:p.id,x:p.x,y:p.y,type:p.type})),freeze:g.freeze,
         fx:g.fx.slice(-28).map(p=>({x:Math.round(p.x),y:Math.round(p.y),color:p.color,life:p.life}))};
     }
-    function makeBackup(){return JSON.parse(JSON.stringify(game));}
+    function makeBackup(){return JSON.parse(JSON.stringify({...game,_netSeed:seed,_netSeq:seq}));}
     function handoffOnExit(){
       if(role==='host'&&connection?.open&&game){
         try{connection.send({t:'handoff',game:makeBackup()});}catch(_){ }
@@ -358,6 +358,8 @@
     function promoteGuest(){
       if(role!=='guest'||!latestBackup||!['playing','connecting','ended'].includes(phase))return false;
       const recovered=JSON.parse(JSON.stringify(latestBackup));
+      seed=recovered._netSeed??seed;seq=recovered._netSeq??seq;
+      delete recovered._netSeed;delete recovered._netSeq;
       if(!recovered.players?.[1])return false;
       recovered.players[0]={...recovered.players[1],id:1};
       recovered.players[1]=makePlayer(2);
@@ -370,8 +372,9 @@
       peer=null;
       // Повторно займаємо ТОЙ САМИЙ код кімнати: колишній хост
       // зможе зайти назад другим гравцем, не починаючи нову місію.
+      try{sessionStorage.setItem('tankDuoLastRoom',roomCode);}catch(_){ }
       registerRoomPeer(true);
-      toast('Тепер ти хост! Місія триває, код кімнати не змінився.');
+      toast('Тепер ти хост! Код кімнати '+roomCode+' збережено.');
       refreshUI();return true;
     }
     function transmit(force=false){
@@ -571,6 +574,7 @@
     function createRoom(){
       if(!window.Peer){$('homeError').textContent='Не завантажився PeerJS. Перевір інтернет.';return;}
       leave();role='host';phase='waiting';roomCode=randomCode();
+      try{sessionStorage.setItem('tankDuoLastRoom',roomCode);}catch(_){ }
       $('roomCode').textContent='••••••';$('waitError').textContent='Підключаємося до мережі...';visibleMenu('menuWait');
       registerRoomPeer();refreshUI();
     }
@@ -578,7 +582,9 @@
       const code=$('roomInput').value.toUpperCase().replace(/[^A-Z2-9]/g,'');
       if(code.length!==6){$('homeError').textContent='Введи шестисимвольний код кімнати.';return;}
       if(!window.Peer){$('homeError').textContent='Не завантажився PeerJS. Перевір інтернет.';return;}
-      leave();role='guest';phase='connecting';roomCode=code;visibleMenu('menuConnect');$('connectInfo').textContent='Підключаємося до кімнати '+code+'...';$('connectError').textContent='';
+      leave();role='guest';phase='connecting';roomCode=code;
+      try{sessionStorage.setItem('tankDuoLastRoom',roomCode);}catch(_){ }
+      visibleMenu('menuConnect');$('connectInfo').textContent='Підключаємося до кімнати '+code+'...';$('connectError').textContent='';
       peer=new Peer(undefined,PEER_OPTIONS);
       peer.on('open',()=>{
         if(role!=='guest')return;
@@ -660,7 +666,8 @@
     $('retry').addEventListener('click',()=>{if(role==='host'||role==='solo')begin(role==='host'&&friendHere);});
     $('restart').addEventListener('click',()=>{if(role==='host'||role==='solo')begin(role==='host'&&friendHere);});
     $('soundBtn').addEventListener('click',()=>{muted=!muted;$('soundBtn').textContent=muted?'♩':'♪';toast(muted?'Звук вимкнено':'Звук увімкнено');if(!muted)playSound('win');});
-    const prefill=new URLSearchParams(location.search).get('room');
+    let prefill=new URLSearchParams(location.search).get('room');
+    if(!prefill){try{prefill=sessionStorage.getItem('tankDuoLastRoom');}catch(_){ }}
     if(prefill&&/^[a-z2-9]{6}$/i.test(prefill)){$('roomInput').value=prefill.toUpperCase();$('joinArea').hidden=false;}
     previewMap=buildMap(1).map;refreshUI();requestAnimationFrame(frame);
   })();
