@@ -118,7 +118,7 @@
       <aside class="side">
         <div class="card"><div class="card-label">Поточна місія</div>
           <div class="stat-row"><span class="stat-name">Хвиля</span><span class="stat-value" id="waveStat">01</span></div>
-          <div class="stat-row"><span class="stat-name">Ворогів залишилось</span><span class="stat-value" id="enemiesStat">12</span></div><div class="stat-row"><span class="stat-name">Літаків у небі</span><span class="stat-value" id="airStat">0</span></div>
+          <div class="stat-row"><span class="stat-name">Ворогів залишилось</span><span class="stat-value" id="enemiesStat">12</span></div><div class="stat-row"><span class="stat-name">Ворожих літаків</span><span class="stat-value" id="airStat">0</span></div><div class="stat-row"><span class="stat-name">Наших літаків</span><span class="stat-value" id="friendlyAirStat">0</span></div>
           <div class="stat-row"><span class="stat-name">Очки команди</span><span class="stat-value" id="scoreStat">0</span></div><div class="stat-row"><span class="stat-name">Захист бази</span><strong class="stat-value" id="baseShieldStat" style="color:#58f7d6;font-size:15px">Неактивний</strong></div>
           <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Команда</div>
           <div class="player"><div class="player-left"><i class="color-dot p1"></i><span>Гравець 1 <span class="tiny" id="player1Role">(ви)</span></span></div><span class="player-metrics"><strong class="player-score" id="player1Score">0 очок</strong><span class="hearts" id="player1Hp">♥♥♥</span></span></div>
@@ -468,7 +468,8 @@
        for(let i=0;i<40;i++){
          const x=tileCenter(1+Math.floor(rand()*(COLS-2))),y=tileCenter(2+Math.floor(rand()*15));
          if(tileAt(g,x,y)!=='.'||g.players.some(p=>Math.abs(p.x-x)<35&&Math.abs(p.y-y)<35))continue;
-         const type=POWER_TYPES[Math.floor(rand()*POWER_TYPES.length)];
+         const available=g.wave<4?POWER_TYPES.filter(t=>t!=='airFighter'):POWER_TYPES;
+          const type=available[Math.floor(rand()*available.length)];
          g.powerups.push({id:newId(),x,y,type,ttl:17});break;
        }
     }
@@ -892,6 +893,7 @@
       $('levelTitle').textContent='▸ МІСІЯ '+String(v?.wave||1).padStart(2,'0')+(v?' · '+TERRAINS[v.biome||0]:'');
       $('enemiesStat').textContent=v?.remaining??10;
        $('airStat').textContent=v?.airUnits?.length||0;
+       $('friendlyAirStat').textContent=v?.friendlyAir?.length||0;
       $('scoreStat').textContent=(v?.score||0).toLocaleString('uk-UA');
        $('baseShieldStat').textContent=v?.baseShield>0?Math.ceil(v.baseShield)+' с':'Неактивний';
       const p1=v?.players?.find(p=>p.id===1),p2=v?.players?.find(p=>p.id===2);
