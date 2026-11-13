@@ -106,7 +106,7 @@
     const POWER_COLORS={cannon:'#ffd56a',shield:'#69d9ff',rapid:'#ff8c57',heal:'#77e6a1',freeze:'#b3a1ff',pierce:'#ff5eac',boost:'#98ff60',armor:'#d8e5ff'};
     const POWER_ICONS={cannon:'★',shield:'◆',rapid:'⚡',heal:'+',freeze:'❄',pierce:'✦',boost:'➤',armor:'⬡'};
     const PEER_OPTIONS={debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
-    let joinAttempt=0,joinTimer=null,hostReady=false,lastBackupSend=0,latestBackup=null,lastHostStateAt=0,hostRegisterTimer=null,hostRegisterAttempts=0;
+    let joinAttempt=0,joinTimer=null,hostReady=false,lastBackupSend=0,latestBackup=null,lastHostStateAt=0,hostRegisterTimer=null,hostRegisterAttempts=0,lastLocalFire=0,lastGuestWave=0;
     function stopJoinTimer(){clearTimeout(joinTimer);joinTimer=null;}
     function stopHostRegistration(){clearTimeout(hostRegisterTimer);hostRegisterTimer=null;hostRegisterAttempts=0;}
     const newId=()=>++seq;
@@ -120,6 +120,7 @@
       for(const id of ['menuHome','menuWait','menuConnect','menuEnd']) $(id).hidden=id!==which;
     }
     function toast(s){ $('toast').textContent=s; $('toast').classList.add('show'); clearTimeout(pendingToast); pendingToast=setTimeout(()=>$('toast').classList.remove('show'),2300); }
+    function unlockAudio(){try{const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;sound||=new AC();if(sound.state==='suspended')sound.resume().catch(()=>{});}catch(_){}}
     function playSound(type){
       if(muted) return;
       try {
@@ -363,6 +364,7 @@
     function promoteGuest(){
       if(role!=='guest'||!latestBackup||!['playing','connecting','ended'].includes(phase))return false;
       const recovered=JSON.parse(JSON.stringify(latestBackup));
+      unlockAudio();
       seed=recovered._netSeed??seed;seq=recovered._netSeq??seq;
       delete recovered._netSeed;delete recovered._netSeq;
       if(!recovered.players?.[1])return false;
@@ -385,7 +387,7 @@
     function transmit(force=false){
       if(role!=='host'||!connection?.open||!game)return;
       const now=performance.now();if(!force&&now-lastSend<65)return;lastSend=now;
-      try{connection.send({t:'state',state:pack(game),phase});if(force||now-lastBackupSend>250){connection.send({t:'backup',game:makeBackup()});lastBackupSend=now;}}catch(_){ }
+      try{connection.send({t:'state',state:pack(game),phase});if(force||now-lastBackupSend>1400){connection.send({t:'backup',game:makeBackup()});lastBackupSend=now;}}catch(_){ }
     }
     function getView(){
       if(role!=='guest')return game;
@@ -600,10 +602,12 @@
           if(role!=='guest'||connection!==c||!data||typeof data!=='object')return;
           if((data.t==='backup'||data.t==='handoff')&&data.game){lastHostStateAt=performance.now();latestBackup=data.game;if(data.t==='handoff')promoteGuest();return;}
            if(data.t==='full'){$('connectError').textContent='У кімнаті вже грають удвох.';c.close();return;}
-          if(data.t==='welcome'){
+          if(data.t==='welcome'){unlockAudio();
             phase='playing';visibleMenu(null);toast('Ви приєднались як гравець 2!');refreshUI();
           }
           if(data.t==='state'&&data.state&&Array.isArray(data.state.map)){
+             if(remoteGame&&data.state.wave!==remoteGame.wave)playSound('win');
+             if(remoteGame&&data.state.score>remoteGame.score)playSound('hit');
             priorGame=remoteGame;remoteGame=data.state;snapshotAt=performance.now();lastHostStateAt=snapshotAt;
             if(data.phase==='ended'||data.state.gameOver){
               phase='ended';$('endIcon').textContent='💥';$('endTitle').textContent='БАЗУ ВТРАЧЕНО';
@@ -634,9 +638,10 @@
         step(game,dt);
         if(role==='host')transmit();
       }
-      if(role==='guest'&&phase==='playing'&&latestBackup&&lastHostStateAt&&timestamp-lastHostStateAt>1600){promoteGuest();}
+      if(role==='guest'&&phase==='playing'&&latestBackup&&lastHostStateAt&&timestamp-lastHostStateAt>3000){promoteGuest();}
        if(role==='guest'&&phase==='playing'&&connection?.open){
-        if(timestamp-lastInputSend>45){lastInputSend=timestamp;try{connection.send({t:'input',keys:{...keys}});}catch(_){ }}
+        if(keys.shoot&&timestamp-lastLocalFire>220){lastLocalFire=timestamp;playSound('fire');}
+         if(timestamp-lastInputSend>32){lastInputSend=timestamp;try{connection.send({t:'input',keys:{...keys}});}catch(_){ }}
         if(timestamp-lastPing>3000){lastPing=timestamp;try{connection.send({t:'ping',sent:performance.now()});}catch(_){ }}
       }
       render(timestamp/1000);
@@ -647,14 +652,14 @@
     document.addEventListener('keydown',(e)=>{
       if(e.target instanceof HTMLInputElement)return;
       const d=KEYMAP[e.code];if(!d)return;
-      if(['playing'].includes(phase)&&['guest','host','solo'].includes(role))e.preventDefault();
+      if(['playing'].includes(phase)&&['guest','host','solo'].includes(role)){e.preventDefault();unlockAudio();}
       keys[d]=true;if(d!=='shoot')keys.heading=d;
     });
     document.addEventListener('keyup',(e)=>{const d=KEYMAP[e.code];if(d){keys[d]=false;if(phase==='playing')e.preventDefault();}});
     window.addEventListener('blur',clearKeys);
     document.querySelectorAll('.touch-pad button[data-key]').forEach(btn=>{
       const d=btn.dataset.key;
-      btn.addEventListener('pointerdown',(e)=>{e.preventDefault();btn.setPointerCapture(e.pointerId);keys[d]=true;if(d!=='shoot')keys.heading=d;btn.classList.add('pressed');});
+      btn.addEventListener('pointerdown',(e)=>{unlockAudio();e.preventDefault();btn.setPointerCapture(e.pointerId);keys[d]=true;if(d!=='shoot')keys.heading=d;btn.classList.add('pressed');});
       const release=()=>{keys[d]=false;btn.classList.remove('pressed');};
       btn.addEventListener('pointerup',release);btn.addEventListener('pointercancel',release);btn.addEventListener('lostpointercapture',release);
     });
