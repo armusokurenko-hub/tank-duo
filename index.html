@@ -128,7 +128,7 @@
         <div class="card"><div class="card-label">Як керувати</div><div class="control-line"><span class="control-keys"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></span><span>рух танка</span></div>
           <div class="control-line"><span class="control-keys"><span class="kbd">↑</span><span class="kbd">←</span><span class="kbd">↓</span><span class="kbd">→</span></span><span>також рух</span></div>
           <div class="control-line"><span class="kbd" style="min-width:72px">SPACE</span><span>постріл</span></div>
-          <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Перешкоди</div><div class="legend"><span>🧱 Цегла — ламається</span><span>⬜ Сталь — міцна</span><span>💧 Вода — не проїхати</span><span>🌿 Кущі — маскування</span></div><div class="separator"></div><div class="card-label" style="margin-bottom:7px">Вороги та бонуси</div><div class="legend"><span>🟡 Легкі — швидкі</span><span>🟣 Важкі — броньовані</span><span>🔴 Стрільці — часті постріли</span><span>🩷 Елітні — з 9 хвилі</span><span>✈️ Літаки — з 4 хвилі</span><span>💣 Бомбардувальники — з 6-ї</span><span>🛩️ Аси — з 12-ї</span><span>➤ Турбо — швидший рух</span><span>⬡ Броня — поглинає удар</span><span>⛨ Щит бази — 20 секунд</span><span>✈ Наш винищувач — проти літаків</span><span>➤ Наш штурмовик — проти танків</span><span>✦ Наш бомбардувальник — авіаудар по групі</span></div>
+          <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Перешкоди</div><div class="legend"><span>🧱 Цегла — ламається</span><span>⬜ Сталь — міцна</span><span>💧 Вода — не проїхати</span><span>🌿 Кущі — маскування</span></div><div class="separator"></div><div class="card-label" style="margin-bottom:7px">Вороги та бонуси</div><div class="legend"><span>🟡 Легкі — швидкі</span><span>🟣 Важкі — броньовані</span><span>🔴 Стрільці — часті постріли</span><span>🩷 Елітні — з 9 хвилі</span><span>✈️ Літаки — з 4 хвилі</span><span>💣 Бомбардувальники — з 6-ї</span><span>🛩️ Аси — з 12-ї</span><span>➤ Турбо — швидший рух</span><span>⬡ Броня — поглинає удар</span><span>⛨ Щит бази — 20 секунд</span><span>✈ Винищувач — керуєш і стріляєш</span><span>➤ Штурмовик — керуєш і атакуєш</span><span>✦ Бомбардувальник — керуєш і скидаєш бомби</span><span>WASD / стрілки — політ; SPACE — атака</span><span>У повітрі танк невразливий, потім повертаєшся назад</span></div>
         </div>
         <div class="card"><div class="card-label">Гра з другом</div><div class="note" id="helpText">Один створює кімнату, копіює посилання і надсилає другу. Друг відкриває його, вводить код — і ви граєте разом через інтернет.</div><div class="stat-row" style="margin-bottom:0"><span class="stat-name">Мережа</span><strong style="color:#a6e8b3" id="netStat">Не підключена</strong></div></div>
       </aside>
@@ -250,7 +250,7 @@
       return {map:map.map(row=>row.join('')),biome};
     }
     function makePlayer(id){
-      return {id,x:tileCenter(PLAYER_X[id-1]),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0,pierce:0,boost:0,armor:0,color:id===1?localColor:COLORS[2],score:0,kills:0};
+      return {id,x:tileCenter(PLAYER_X[id-1]),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0,pierce:0,boost:0,armor:0,flight:null,color:id===1?localColor:COLORS[2],score:0,kills:0};
     }
     const AIR_TYPES={
       scout:{hp:1,speed:180,points:180,color:'#81b8dc',bombs:0},
@@ -270,7 +270,7 @@
     function nextWave(g){
       g.wave++;const level=buildMap(g.wave);g.map=level.map;g.biome=level.biome;g.spawnLeft=10+Math.min(26,(g.wave-1)*3);g.airSpawnLeft=airCount(g.wave);g.remaining=g.spawnLeft+g.airSpawnLeft;
       g.enemies=[];g.airUnits=[];g.airBombs=[];g.friendlyAir=[];g.airClock=4.5;g.bullets=[];g.fx=[];g.powerups=[];g.powerClock=5;g.freeze=0;g.baseShield=0;g.spawnClock=1.8;g.stageClock=0;
-      g.players.forEach(p=>{if(p.hp<=0)p.hp=2;p.alive=true;p.respawn=0;p.inv=3;p.cd=0;p.x=tileCenter(PLAYER_X[p.id-1]);p.y=tileCenter(18);p.dir='up';});
+      g.players.forEach(p=>{if(p.hp<=0)p.hp=2;p.alive=true;p.respawn=0;p.inv=3;p.cd=0;p.x=tileCenter(PLAYER_X[p.id-1]);p.y=tileCenter(18);p.dir='up';p.flight=null;});
       toast(`Хвиля ${g.wave} — утримайте базу!`);playSound('win');
       if(role==='host')transmit(true);
     }
@@ -282,7 +282,8 @@
       for(const other of [...g.players,...g.enemies]){
         if(t===other||!other.alive)continue;
         if(other.id===2&&!g.active2)continue;
-        if(Math.abs(nx-other.x)<25&&Math.abs(ny-other.y)<25)return false;
+        if(other.flight)continue;
+         if(Math.abs(nx-other.x)<25&&Math.abs(ny-other.y)<25)return false;
       }
       return true;
     }
@@ -321,7 +322,7 @@
     }
     function writeTile(g,x,y,t){const ty=Math.floor(y/TILE),tx=Math.floor(x/TILE);if(ty>=0&&ty<N&&tx>=0&&tx<COLS){const row=g.map[ty];g.map[ty]=row.slice(0,tx)+t+row.slice(tx+1);}}
     function killPlayer(g,p){
-      if(p.inv>0||p.shield>0||!p.alive)return;
+      if(p.flight||p.inv>0||p.shield>0||!p.alive)return;
       if(p.armor>0){p.armor=0;burst(g,p.x,p.y,'#d8e5ff',10);playSound('hit');return;}
       burst(g,p.x,p.y,p.id===1?'#f9d87a':'#7acaff',17);playSound('explode');
       p.hp=Math.max(0,p.hp-1);p.alive=false;p.respawn=p.hp?1.6:0;
@@ -379,7 +380,7 @@
           else{g.baseAlive=false;gameLost(g);}
         }else{
           for(const p of g.players)
-            if(p.alive&&(p.id===1||g.active2)&&Math.hypot(p.x-bomb.x,p.y-bomb.y)<30)killPlayer(g,p);
+            if(p.alive&&!p.flight&&(p.id===1||g.active2)&&Math.hypot(p.x-bomb.x,p.y-bomb.y)<30)killPlayer(g,p);
         }
       }
       g.airBombs=g.airBombs.filter(b=>b.ttl>0);
@@ -483,7 +484,7 @@
        if(power.type==='boost')p.boost=13;
        if(power.type==='armor')p.armor=18;
        if(power.type==='baseShield')g.baseShield=Math.max(g.baseShield||0,20);
-       if(FRIEND_AIR[power.type])callAirSupport(g,p,power.type);
+       if(FRIEND_AIR[power.type])startPlayerFlight(g,p,power.type);
        g.score+=50;p.score=(p.score||0)+50;burst(g,p.x,p.y,POWER_COLORS[power.type],14);playSound('win');
        toast(({cannon:'ГАРМАТУ ПОСИЛЕНО!',shield:'ЩИТ НА 12 СЕКУНД!',rapid:'ШВИДКОСТРІЛЬНІСТЬ!',heal:'+1 ЖИТТЯ!',freeze:'ВОРОГІВ ЗАМОРОЖЕНО!',pierce:'БРОНЕБІЙНІ СНАРЯДИ!',boost:'ТУРБО-ДВИГУН!',armor:'ПОСИЛЕНА БРОНЯ!',baseShield:'ЩИТ БАЗИ — 20 СЕКУНД!',airFighter:'ВИНИЩУВАЧ ПРИЛЕТІВ!',airStriker:'ШТУРМОВИК ПРИЛЕТІВ!',airBomber:'АВІАУДАР ВИКЛИКАНО!'})[power.type]);
        power.ttl=0;
@@ -500,14 +501,15 @@
       g.totalTime+=dt;g.stageClock+=dt;
        g.powerClock-=dt;g.freeze=Math.max(0,g.freeze-dt);g.baseShield=Math.max(0,(g.baseShield||0)-dt);
        if(g.powerClock<=0){spawnPowerup(g);g.powerClock=between(9,15);}
-       for(const power of g.powerups){power.ttl-=dt;if(power.ttl>0)for(const p of g.players){if(p.alive&&(p.id===1||g.active2)&&Math.hypot(p.x-power.x,p.y-power.y)<24){collectPowerup(g,p,power);break;}}}
+       for(const power of g.powerups){power.ttl-=dt;if(power.ttl>0)for(const p of g.players){if(p.alive&&!p.flight&&(p.id===1||g.active2)&&Math.hypot(p.x-power.x,p.y-power.y)<24){collectPowerup(g,p,power);break;}}}
        g.powerups=g.powerups.filter(p=>p.ttl>0);
       for(const p of g.players){
         if(p.id===2&&!g.active2)continue;
         if(!p.alive){p.respawn-=dt;if(p.respawn<=0&&p.hp>0){p.x=tileCenter(PLAYER_X[p.id-1]);p.y=tileCenter(18);p.alive=true;p.inv=2.4;}continue;}
         p.cd=Math.max(0,p.cd-dt);p.inv=Math.max(0,p.inv-dt);p.shield=Math.max(0,p.shield-dt);p.rapid=Math.max(0,p.rapid-dt);p.pierce=Math.max(0,p.pierce-dt);p.boost=Math.max(0,p.boost-dt);p.armor=Math.max(0,p.armor-dt);
         const input=p.id===1?keys:remoteKeys, d=activeDirection(input);
-        if(d)moveEntity(g,p,d,(p.boost>0?175:112)*dt);
+        if(p.flight){updatePlayerFlight(g,p,input,dt);continue;}
+         if(d)moveEntity(g,p,d,(p.boost>0?175:112)*dt);
         if(input.shoot&&p.cd===0){spawnBullet(g,p);p.cd=p.rapid>0?.14:.34;}
       }
       updateAir(g,dt);
@@ -559,7 +561,7 @@
           if(hit==='S'){if(b.team!=='enemy'&&(b.gun>=3||b.pierce))writeTile(g,b.x,b.y,'.');if(!b.pierce)b.alive=false;burst(g,b.x,b.y,b.pierce?'#ff5eac':'#a6b7cd',4);if(!b.alive)break;}
           const targets=b.team==='enemy'?g.players:g.enemies;
           for(const t of targets){
-            if(!t.alive||(b.team==='enemy'&&t.id===2&&!g.active2))continue;
+            if(t.flight||!t.alive||(b.team==='enemy'&&t.id===2&&!g.active2))continue;
             if(Math.abs(t.x-b.x)<14+(b.gun-1)*2&&Math.abs(t.y-b.y)<14+(b.gun-1)*2){
               b.alive=false;
               if(b.team==='enemy')killPlayer(g,t);else {t.hp=Math.max(0,t.hp-(b.gun||1));if(t.hp===0)enemyDeath(g,t,b.owner);else burst(g,t.x,t.y,'#ffd9a2',5);}
@@ -575,7 +577,7 @@
     }
     function pack(g){
       return {wave:g.wave,score:g.score,map:g.map,biome:g.biome,remaining:g.remaining,baseAlive:g.baseAlive,baseShield:g.baseShield||0,active2:g.active2,gameOver:g.gameOver,
-        players:g.players.map(p=>({id:p.id,color:p.color,score:p.score||0,kills:p.kills||0,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid,pierce:p.pierce,boost:p.boost,armor:p.armor})),
+        players:g.players.map(p=>({id:p.id,color:p.color,score:p.score||0,kills:p.kills||0,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid,pierce:p.pierce,boost:p.boost,armor:p.armor,flight:p.flight?{...p.flight}:null})),
         airUnits:(g.airUnits||[]).map(a=>({id:a.id,kind:a.kind,x:a.x,y:a.y,vx:a.vx,hp:a.hp,maxHp:a.maxHp,alive:a.alive})),
          friendlyAir:(g.friendlyAir||[]).map(a=>({id:a.id,type:a.type,kind:a.kind,owner:a.owner,x:a.x,y:a.y,vx:a.vx,hp:a.hp,maxHp:a.maxHp,alive:a.alive,color:a.color})),
          airBombs:(g.airBombs||[]).map(b=>({id:b.id,x:b.x,y:b.y,ttl:b.ttl,total:b.total,base:b.base})),
@@ -763,7 +765,7 @@
       const original=AIR_TYPES[a.kind]||AIR_TYPES.scout;
       const kind=a.color?{...original,color:a.color}:original;
       ctx.save();ctx.translate(a.x,a.y);
-      const rot=a.vx>0?Math.PI/2:-Math.PI/2;
+      const rot=a.dir?({up:0,right:Math.PI/2,down:Math.PI,left:-Math.PI/2}[a.dir]):a.vx>0?Math.PI/2:-Math.PI/2;
       const size=a.kind==='bomber'?1.22:a.kind==='ace'?1.06:.9;
       ctx.save();ctx.translate(14,19);ctx.rotate(rot);ctx.scale(size*1.08,size*1.08);
       ctx.fillStyle='#040c1a66';ctx.beginPath();ctx.ellipse(0,2,34,13,0,0,TAU);ctx.fill();ctx.restore();
@@ -870,12 +872,13 @@
        for(const b of v.airBombs||[])drawAirBomb(b,time);
       for(const p of v.powerups||[])drawPowerup(p,time);
        for(const b of v.bullets||[])drawBullet(b);
-      for(const p of v.players||[])if(p.id===1||v.active2)tank(p,p.color||COLORS[p.id],time);
+      for(const p of v.players||[])if((p.id===1||v.active2)&&!p.flight)tank(p,p.color||COLORS[p.id],time);
       for(const e of v.enemies||[])tank(e,ENEMY_CLASSES[e.kind||'basic'].color,time);
       for(const p of v.fx||[]){ctx.globalAlpha=limit(p.life*3,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-3,p.y-3,6,6);}ctx.globalAlpha=1;
       renderMap(v.map,time,true);
        for(const a of v.airUnits||[])drawAircraft(a,time);
        for(const a of v.friendlyAir||[])drawAircraft(a,time);
+       for(const p of v.players||[])if((p.id===1||v.active2)&&p.flight)drawAircraft({...p.flight,kind:FRIEND_AIR[p.flight.type].kind,vx:DIR[p.flight.dir][0],hp:3,maxHp:3,owner:p.id},time);
        drawBaseShield(v,time);
       if(!v.baseAlive){const x=tileCenter(BASE_X),y=tileCenter(18);ctx.fillStyle='#9b3a31';ctx.fillRect(x-12,y-10,25,22);ctx.fillStyle='#2a1b23';ctx.fillRect(x-7,y-4,15,15);}
     }
@@ -905,6 +908,7 @@
        document.querySelector('.color-dot.p1').style.backgroundColor=p1?.color||COLORS[1];
        document.querySelector('.color-dot.p2').style.backgroundColor=p2?.color||COLORS[2];
       $('player2Role').textContent=role==='guest'?'(ви)':v?.active2?'(друг)':'(очікуємо)';
+       for(const [id,p] of [['player1Role',p1],['player2Role',p2]])if(p&&(p.id===1||v?.active2)&&p.flight)$(id).textContent+=` · ✈ ${Math.ceil(p.flight.time)} с`;
        for(const [id,p] of [['player1Role',p1],['player2Role',p2]])if(p&&(p.id===1||v?.active2))$(id).textContent+=` · гармата ${p.gun||1}${p.shield>0?' 🛡':''}${p.rapid>0?' ⚡':''}${p.pierce>0?' ✦':''}${p.boost>0?' ➤':''}${p.armor>0?' ⬡':''}`;
       $('restart').disabled=role==='guest'||role==='none'||phase==='connecting'||phase==='waiting';
       $('modeTitle').textContent=role==='guest'?'ГРАВЕЦЬ 2':role==='host'?'КОМАНДНИЙ РЕЖИМ':role==='solo'?'СОЛО РЕЖИМ':'ГОТОВІ ДО БОЮ?';
