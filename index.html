@@ -102,13 +102,14 @@
     let snapshotAt=0, peer=null, connection=null, roomCode='', friendHere=false;
     let muted=false, sound=null, pendingToast=0, lastUI=0, lastSend=0, lastInputSend=0, lastPing=0, pingMs=null, lastTick=performance.now();
     let seq=0, seed=1123;
-    const POWER_TYPES=['cannon','shield','rapid','heal','freeze'];
-    const POWER_COLORS={cannon:'#ffd56a',shield:'#69d9ff',rapid:'#ff8c57',heal:'#77e6a1',freeze:'#b3a1ff'};
-    const POWER_ICONS={cannon:'★',shield:'◆',rapid:'⚡',heal:'+',freeze:'❄'};
+    const POWER_TYPES=['cannon','shield','rapid','heal','freeze','pierce'];
+    const POWER_COLORS={cannon:'#ffd56a',shield:'#69d9ff',rapid:'#ff8c57',heal:'#77e6a1',freeze:'#b3a1ff',pierce:'#ff5eac'};
+    const POWER_ICONS={cannon:'★',shield:'◆',rapid:'⚡',heal:'+',freeze:'❄',pierce:'✦'};
     const PEER_OPTIONS={debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
     let joinAttempt=0,joinTimer=null,hostReady=false;
     function stopJoinTimer(){clearTimeout(joinTimer);joinTimer=null;}
     const newId=()=>++seq;
+    let previewMap=null;
     function rand(){ seed=(Math.imul(seed,1664525)+1013904223)>>>0; return seed/4294967296; }
     function between(a,b){return a+rand()*(b-a);}
     function limit(v,a,b){return Math.max(a,Math.min(b,v));}
@@ -131,40 +132,40 @@
         g.gain.setValueAtTime(.038,now);g.gain.exponentialRampToValueAtTime(.001,now+.14);o.start(now);o.stop(now+.16);
       } catch(_){}
     }
+    const TERRAINS=['Ліс','Озера','Фортеця','Пустеля','Болото'];
     function buildMap(wave){
       const map=Array.from({length:N},()=>Array(N).fill('.'));
-      function place(x,y,v){ if(x>=0&&x<N&&y>=0&&y<N)map[y][x]=v; }
-      const variant=(wave-1)%3;
-      const brickBlocks=[
-        [2,3],[5,3],[12,3],[16,3],[3,6],[7,6],[11,6],[16,6],[1,9],[5,9],[13,9],[17,9],[3,12],[8,12],[12,12],[16,12],[4,15],[14,15]
-      ];
-      for(const [x,y] of brickBlocks){
-        const xx=variant===1?19-x:x, yy=variant===2?Math.max(3,y-1):y;
-        place(xx,yy,'#');place(xx+1,yy,'#');
-        if((x+y)%3!==0){place(xx,yy+1,'#');place(xx+1,yy+1,'#');}
+      const biome=Math.floor(rand()*TERRAINS.length);
+      const place=(x,y,t)=>{if(x>=0&&x<N&&y>=0&&y<N)map[y][x]=t;};
+      const safe=(x,y)=>([2,9,17].includes(x)&&y<=16)||(y===15&&x>=2&&x<=17)||y>=16||y<=2;
+      const kinds=[['*','*','#','S','~'],['~','~','*','#','S'],['#','#','S','S','*'],['#','*','S','~'],['~','*','#','S']][biome];
+      for(let i=0;i<42+Math.min(wave,12);i++){
+        const x=1+Math.floor(rand()*17),y=3+Math.floor(rand()*12),w=1+Math.floor(rand()*3),h=1+Math.floor(rand()*3),type=kinds[Math.floor(rand()*kinds.length)];
+        for(let yy=y;yy<y+h&&yy<16;yy++)for(let xx=x;xx<x+w&&xx<19;xx++){
+          if(!safe(xx,yy)&&map[yy][xx]==='.'&&rand()>.12)place(xx,yy,type);
+        }
       }
-      for(const [x,y] of [[9,4],[10,4],[9,11],[10,11],[2,15],[17,15]])place(x,y,'S');
-      for(const [x,y] of [[4,5],[5,5],[14,5],[15,5],[6,13],[7,13],[13,13],[14,13]])place(x,y,'~');
-      for(const [x,y] of [[1,5],[2,5],[17,5],[18,5],[8,8],[9,8],[10,8],[11,8],[4,11],[15,11],[1,16],[18,16]])place(x,y,'*');
-      // Підступи до бази відкриті для гравців, але захищені цеглою.
+      for(let y=1;y<=16;y++)for(const x of [2,9,17])place(x,y,'.');
+      for(let x=2;x<=17;x++)place(x,15,'.');
       for(const [x,y] of [[8,17],[9,17],[10,17],[8,18],[10,18]])place(x,y,'#');
       place(9,18,'B');
-      for(const [x,y] of [[5,17],[5,18],[14,17],[14,18],[2,1],[9,1],[17,1],[1,1],[18,1]])place(x,y,'.');
-      return map.map(row=>row.join(''));
+      for(const [x,y] of [[5,17],[5,18],[14,17],[14,18],[2,1],[9,1],[17,1]])place(x,y,'.');
+      return {map:map.map(row=>row.join('')),biome};
     }
     function makePlayer(id){
-      return {id,x:tileCenter(id===1?5:14),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0};
+      return {id,x:tileCenter(id===1?5:14),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0,pierce:0};
     }
     function makeGame(coop=false){
-      seed=1123;seq=0;
-      return {wave:1, score:0, map:buildMap(1), players:[makePlayer(1),makePlayer(2)],enemies:[],bullets:[],fx:[],powerups:[],powerClock:7,freeze:0,remaining:12,spawnLeft:12,spawnClock:1.3,enemyKills:0,baseAlive:true,active2:coop, won:false, gameOver:false, stageClock:0, totalTime:0};
+      seed=(crypto.getRandomValues(new Uint32Array(1))[0])>>>0;seq=0;
+       const level=buildMap(1);
+      return {wave:1, score:0, map:level.map,biome:level.biome, players:[makePlayer(1),makePlayer(2)],enemies:[],bullets:[],fx:[],powerups:[],powerClock:7,freeze:0,remaining:12,spawnLeft:12,spawnClock:1.3,enemyKills:0,baseAlive:true,active2:coop, won:false, gameOver:false, stageClock:0, totalTime:0};
     }
     function begin(coop){
       game=makeGame(coop);remoteGame=null;priorGame=null;phase='playing';visibleMenu(null);refreshUI();
       if(role==='host') transmit(true);
     }
     function nextWave(g){
-      g.wave++;g.map=buildMap(g.wave);g.remaining=12+Math.min(12,(g.wave-1)*4);g.spawnLeft=g.remaining;
+      g.wave++;const level=buildMap(g.wave);g.map=level.map;g.biome=level.biome;g.remaining=12+Math.min(12,(g.wave-1)*4);g.spawnLeft=g.remaining;
       g.enemies=[];g.bullets=[];g.fx=[];g.powerups=[];g.powerClock=5;g.freeze=0;g.spawnClock=1.8;g.stageClock=0;
       g.players.forEach(p=>{if(p.hp<=0)p.hp=2;p.alive=true;p.respawn=0;p.inv=3;p.cd=0;p.x=tileCenter(p.id===1?5:14);p.y=tileCenter(18);p.dir='up';});
       toast(`Хвиля ${g.wave} — утримайте базу!`);playSound('win');
@@ -208,7 +209,7 @@
     function spawnBullet(g,t){
        const gun=t.team==='enemy'?1:(t.gun||1);
       const [dx,dy]=DIR[t.dir];
-      g.bullets.push({id:newId(),x:t.x+dx*19,y:t.y+dy*19,dir:t.dir,team:t.team||'player',owner:t.id,gun,alive:true});
+      g.bullets.push({id:newId(),x:t.x+dx*19,y:t.y+dy*19,dir:t.dir,team:t.team||'player',owner:t.id,gun,pierce:t.team!=='enemy'&&t.pierce>0,alive:true});
       if(t.team!=='enemy'&&(role!=='guest'))playSound('fire');
     }
     function burst(g,x,y,color,count=9){
@@ -241,8 +242,9 @@
        if(power.type==='rapid')p.rapid=12;
        if(power.type==='heal')p.hp=Math.min(3,p.hp+1);
        if(power.type==='freeze')g.freeze=7;
+       if(power.type==='pierce')p.pierce=14;
        g.score+=50;burst(g,p.x,p.y,POWER_COLORS[power.type],14);playSound('win');
-       toast(({cannon:'ГАРМАТУ ПОСИЛЕНО!',shield:'ЩИТ НА 12 СЕКУНД!',rapid:'ШВИДКОСТРІЛЬНІСТЬ!',heal:'+1 ЖИТТЯ!',freeze:'ВОРОГІВ ЗАМОРОЖЕНО!'})[power.type]);
+       toast(({cannon:'ГАРМАТУ ПОСИЛЕНО!',shield:'ЩИТ НА 12 СЕКУНД!',rapid:'ШВИДКОСТРІЛЬНІСТЬ!',heal:'+1 ЖИТТЯ!',freeze:'ВОРОГІВ ЗАМОРОЖЕНО!',pierce:'БРОНЕБІЙНІ СНАРЯДИ!'})[power.type]);
        power.ttl=0;
     }
     function gameLost(g){
@@ -262,7 +264,7 @@
       for(const p of g.players){
         if(p.id===2&&!g.active2)continue;
         if(!p.alive){p.respawn-=dt;if(p.respawn<=0&&p.hp>0){p.x=tileCenter(p.id===1?5:14);p.y=tileCenter(18);p.alive=true;p.inv=2.4;}continue;}
-        p.cd=Math.max(0,p.cd-dt);p.inv=Math.max(0,p.inv-dt);p.shield=Math.max(0,p.shield-dt);p.rapid=Math.max(0,p.rapid-dt);
+        p.cd=Math.max(0,p.cd-dt);p.inv=Math.max(0,p.inv-dt);p.shield=Math.max(0,p.shield-dt);p.rapid=Math.max(0,p.rapid-dt);p.pierce=Math.max(0,p.pierce-dt);
         const input=p.id===1?keys:remoteKeys, d=activeDirection(input);
         if(d)moveEntity(g,p,d,112*dt);
         if(input.shoot&&p.cd===0){spawnBullet(g,p);p.cd=p.rapid>0?.14:.34;}
@@ -300,8 +302,8 @@
           if(b.x<0||b.y<0||b.x>=SIZE||b.y>=SIZE){b.alive=false;break;}
           const hit=tileAt(g,b.x,b.y);
           if(hit==='B'){b.alive=false;g.baseAlive=false;burst(g,b.x,b.y,'#f6cb67',30);gameLost(g);break;}
-          if(hit==='#'){writeTile(g,b.x,b.y,'.');b.alive=false;burst(g,b.x,b.y,'#d28c65',5);break;}
-          if(hit==='S'){if(b.team!=='enemy'&&b.gun>=3)writeTile(g,b.x,b.y,'.');b.alive=false;burst(g,b.x,b.y,'#a6b7cd',4);break;}
+          if(hit==='#'){writeTile(g,b.x,b.y,'.');if(!b.pierce)b.alive=false;burst(g,b.x,b.y,'#d28c65',5);if(!b.alive)break;}
+          if(hit==='S'){if(b.team!=='enemy'&&(b.gun>=3||b.pierce))writeTile(g,b.x,b.y,'.');if(!b.pierce)b.alive=false;burst(g,b.x,b.y,b.pierce?'#ff5eac':'#a6b7cd',4);if(!b.alive)break;}
           const targets=b.team==='enemy'?g.players:g.enemies;
           for(const t of targets){
             if(!t.alive||(b.team==='enemy'&&t.id===2&&!g.active2))continue;
@@ -319,10 +321,10 @@
       if(!g.gameOver&&g.remaining<=0&&g.spawnLeft<=0)nextWave(g);
     }
     function pack(g){
-      return {wave:g.wave,score:g.score,map:g.map,remaining:g.remaining,baseAlive:g.baseAlive,active2:g.active2,gameOver:g.gameOver,
-        players:g.players.map(p=>({id:p.id,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid})),
+      return {wave:g.wave,score:g.score,map:g.map,biome:g.biome,remaining:g.remaining,baseAlive:g.baseAlive,active2:g.active2,gameOver:g.gameOver,
+        players:g.players.map(p=>({id:p.id,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid,pierce:p.pierce})),
         enemies:g.enemies.map(e=>({id:e.id,x:Math.round(e.x*10)/10,y:Math.round(e.y*10)/10,dir:e.dir,alive:e.alive})),
-        bullets:g.bullets.map(b=>({id:b.id,x:Math.round(b.x),y:Math.round(b.y),dir:b.dir,team:b.team,gun:b.gun})),
+        bullets:g.bullets.map(b=>({id:b.id,x:Math.round(b.x),y:Math.round(b.y),dir:b.dir,team:b.team,gun:b.gun,pierce:b.pierce})),
          powerups:g.powerups.map(p=>({id:p.id,x:p.x,y:p.y,type:p.type})),freeze:g.freeze,
         fx:g.fx.slice(-28).map(p=>({x:Math.round(p.x),y:Math.round(p.y),color:p.color,life:p.life}))};
     }
@@ -381,20 +383,21 @@
       ctx.fillStyle=t.team==='enemy'?'#7b2531':'#405267';ctx.fillRect(-7,-7,14,14);ctx.fillStyle=color;ctx.fillRect(-5,-5,10,10);ctx.fillStyle='#fff2c4';ctx.fillRect(-2,-2,4,4);
       ctx.restore();
       if(t.shield>0){ctx.strokeStyle='#67e6ff';ctx.lineWidth=3;ctx.beginPath();ctx.arc(t.x,t.y,21+Math.sin(time*5)*2,0,TAU);ctx.stroke();}
+       if(t.pierce>0){ctx.strokeStyle='#ff5eac';ctx.lineWidth=3;ctx.strokeRect(t.x-20,t.y-20,40,40);}
        if(t.rapid>0){ctx.strokeStyle='#ff9e55';ctx.lineWidth=2;ctx.strokeRect(t.x-18,t.y-18,36,36);}
        if(t.inv>0){ctx.strokeStyle='rgba(176,227,255,.47)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(t.x,t.y,18,0,TAU);ctx.stroke();}
     }
-    function background(time){
-      ctx.fillStyle='#141e23';ctx.fillRect(0,0,SIZE,SIZE);
+    function background(time,biome=0){
+      ctx.fillStyle=['#141e23','#13212a','#28231c','#22221c','#162921'][biome]||'#141e23';ctx.fillRect(0,0,SIZE,SIZE);
       for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-        ctx.fillStyle=(x+y)%2?'#182229':'#162027';ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
+        const palette=[['#182229','#162027'],['#152b35','#1b3038'],['#302b28','#292522'],['#302b20','#29261e'],['#183228','#20382a']][biome]||['#182229','#162027'];ctx.fillStyle=palette[(x+y)%2];ctx.fillRect(x*TILE,y*TILE,TILE,TILE);
         if((x*13+y*7)%8===0){ctx.fillStyle='#263039';ctx.fillRect(x*TILE+23,y*TILE+7,3,3);}
       }
     }
     function render(time){
-      const v=getView();background(time);
+      const v=getView();background(time,v?.biome||0);
       if(!v){ // Декорація в головному меню.
-        const map=buildMap(1);renderMap(map,time,false);
+        const map=previewMap;renderMap(map,time,false);
         tank({x:tileCenter(5),y:tileCenter(18),dir:'up',alive:true},COLORS[1],time);
         tank({x:tileCenter(14),y:tileCenter(18),dir:'up',alive:true},COLORS[2],time);
         for(const [x,y] of [[2,2],[10,5],[16,8]])tank({x:tileCenter(x),y:tileCenter(y),dir:'down',alive:true,team:'enemy'},COLORS.enemy,time);
@@ -420,7 +423,7 @@
     function refreshUI(){
       const v=role==='guest'?remoteGame:game;
       $('waveStat').textContent=String(v?.wave||1).padStart(2,'0');
-      $('levelTitle').textContent='▸ МІСІЯ '+String(v?.wave||1).padStart(2,'0');
+      $('levelTitle').textContent='▸ МІСІЯ '+String(v?.wave||1).padStart(2,'0')+(v?' · '+TERRAINS[v.biome||0]:'');
       $('enemiesStat').textContent=v?.remaining??12;
       $('scoreStat').textContent=(v?.score||0).toLocaleString('uk-UA');
       const p1=v?.players?.find(p=>p.id===1),p2=v?.players?.find(p=>p.id===2);
@@ -428,7 +431,7 @@
       $('player2Hp').textContent=v?.active2&&p2?'♥'.repeat(p2.hp)+'♡'.repeat(Math.max(0,3-p2.hp)):'—';
       $('player1Role').textContent=role==='guest'?'(друг)':'(ви)';
       $('player2Role').textContent=role==='guest'?'(ви)':v?.active2?'(друг)':'(очікуємо)';
-       for(const [id,p] of [['player1Role',p1],['player2Role',p2]])if(p&&(p.id===1||v?.active2))$(id).textContent+=` · гармата ${p.gun||1}${p.shield>0?' 🛡':''}${p.rapid>0?' ⚡':''}`;
+       for(const [id,p] of [['player1Role',p1],['player2Role',p2]])if(p&&(p.id===1||v?.active2))$(id).textContent+=` · гармата ${p.gun||1}${p.shield>0?' 🛡':''}${p.rapid>0?' ⚡':''}${p.pierce>0?' ✦':''}`;
       $('restart').disabled=role==='guest'||role==='none'||phase==='connecting'||phase==='waiting';
       $('modeTitle').textContent=role==='guest'?'ГРАВЕЦЬ 2':role==='host'?'КОМАНДНИЙ РЕЖИМ':role==='solo'?'СОЛО РЕЖИМ':'ГОТОВІ ДО БОЮ?';
       const label=role==='host'?(friendHere?'Друг у грі': 'Очікуємо друга'):role==='guest'?(connection?.open?'Зв’язок із другом':'З’єднання втрачено'):role==='solo'?'Локальна гра':'Безкоштовно • P2P';
@@ -586,7 +589,7 @@
     $('soundBtn').addEventListener('click',()=>{muted=!muted;$('soundBtn').textContent=muted?'♩':'♪';toast(muted?'Звук вимкнено':'Звук увімкнено');if(!muted)playSound('win');});
     const prefill=new URLSearchParams(location.search).get('room');
     if(prefill&&/^[a-z2-9]{6}$/i.test(prefill)){$('roomInput').value=prefill.toUpperCase();$('joinArea').hidden=false;}
-    refreshUI();requestAnimationFrame(frame);
+    previewMap=buildMap(1).map;refreshUI();requestAnimationFrame(frame);
   })();
   </script>
 </body>
