@@ -106,7 +106,7 @@
     const POWER_COLORS={cannon:'#ffd56a',shield:'#69d9ff',rapid:'#ff8c57',heal:'#77e6a1',freeze:'#b3a1ff',pierce:'#ff5eac'};
     const POWER_ICONS={cannon:'★',shield:'◆',rapid:'⚡',heal:'+',freeze:'❄',pierce:'✦'};
     const PEER_OPTIONS={debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
-    let joinAttempt=0,joinTimer=null,hostReady=false,lastBackupSend=0,latestBackup=null;
+    let joinAttempt=0,joinTimer=null,hostReady=false,lastBackupSend=0,latestBackup=null,lastHostStateAt=0;
     function stopJoinTimer(){clearTimeout(joinTimer);joinTimer=null;}
     const newId=()=>++seq;
     let previewMap=null;
@@ -457,7 +457,7 @@
     function clearKeys(){for(const d of ['up','down','left','right','shoot']){keys[d]=false;remoteKeys[d]=false;}document.querySelectorAll('.touch-pad .pressed').forEach(el=>el.classList.remove('pressed'));}
     function leave(){
       if(role==='host'&&connection?.open&&game){try{connection.send({t:'handoff',game:makeBackup()});}catch(_){ }}
-       stopJoinTimer();joinAttempt=0;hostReady=false;latestBackup=null;try{connection?.close();peer?.destroy();}catch(_){ }
+       stopJoinTimer();joinAttempt=0;hostReady=false;latestBackup=null;lastHostStateAt=0;try{connection?.close();peer?.destroy();}catch(_){ }
       connection=null;peer=null;roomCode='';friendHere=false;pingMs=null;role='none';phase='menu';game=null;remoteGame=null;priorGame=null;clearKeys();visibleMenu('menuHome');$('homeError').textContent='';refreshUI();
     }
     function randomCode(){
@@ -534,13 +534,13 @@
         c.on('open',()=>{stopJoinTimer();$('connectError').textContent='';$('connectInfo').textContent='З’єднання встановлено. Очікуємо ігрове поле...';refreshUI();});
         c.on('data',(data)=>{
           if(role!=='guest'||connection!==c||!data||typeof data!=='object')return;
-          if((data.t==='backup'||data.t==='handoff')&&data.game){latestBackup=data.game;if(data.t==='handoff')promoteGuest();return;}
+          if((data.t==='backup'||data.t==='handoff')&&data.game){lastHostStateAt=performance.now();latestBackup=data.game;if(data.t==='handoff')promoteGuest();return;}
            if(data.t==='full'){$('connectError').textContent='У кімнаті вже грають удвох.';c.close();return;}
           if(data.t==='welcome'){
             phase='playing';visibleMenu(null);toast('Ви приєднались як гравець 2!');refreshUI();
           }
           if(data.t==='state'&&data.state&&Array.isArray(data.state.map)){
-            priorGame=remoteGame;remoteGame=data.state;snapshotAt=performance.now();
+            priorGame=remoteGame;remoteGame=data.state;snapshotAt=performance.now();lastHostStateAt=snapshotAt;
             if(data.phase==='ended'||data.state.gameOver){
               phase='ended';$('endIcon').textContent='💥';$('endTitle').textContent='БАЗУ ВТРАЧЕНО';
               $('endText').textContent=`Хвиля ${remoteGame.wave}. Очки команди: ${remoteGame.score}. Хост може перезапустити гру.`;
@@ -570,7 +570,8 @@
         step(game,dt);
         if(role==='host')transmit();
       }
-      if(role==='guest'&&phase==='playing'&&connection?.open){
+      if(role==='guest'&&phase==='playing'&&latestBackup&&lastHostStateAt&&timestamp-lastHostStateAt>10000){promoteGuest();}
+       if(role==='guest'&&phase==='playing'&&connection?.open){
         if(timestamp-lastInputSend>45){lastInputSend=timestamp;try{connection.send({t:'input',keys:{...keys}});}catch(_){ }}
         if(timestamp-lastPing>3000){lastPing=timestamp;try{connection.send({t:'ping',sent:performance.now()});}catch(_){ }}
       }
