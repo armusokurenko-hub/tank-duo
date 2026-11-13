@@ -142,17 +142,25 @@
       gunner:{hp:2,speed:76,fire:.78,color:'#ee7272',points:220},
       elite:{hp:4,speed:91,fire:.9,color:'#ff5b9c',points:450}
     };
-    function pickEnemyType(wave){const roll=rand();if(wave>=9&&roll<.12)return 'elite';if(wave>=5&&roll<.34)return 'heavy';if(wave>=4&&roll<.55)return 'gunner';if(wave>=2&&roll<.74)return 'scout';return 'basic';}
+    function pickEnemyType(wave){
+      const roll=rand();
+      // Спокійний старт. Нові класи додаються поступово, а не всі одразу.
+      if(wave>=12&&roll<Math.min(.09,.03+(wave-12)*.01))return 'elite';
+      if(wave>=7&&roll<Math.min(.22,.08+(wave-7)*.025))return 'heavy';
+      if(wave>=5&&roll<Math.min(.38,.08+(wave-5)*.035))return 'gunner';
+      if(wave>=3&&roll<Math.min(.57,.12+(wave-3)*.04))return 'scout';
+      return 'basic';
+    }
     function buildMap(wave){
       const map=Array.from({length:N},()=>Array(N).fill('.'));
       const biome=Math.floor(rand()*TERRAINS.length);
       const place=(x,y,t)=>{if(x>=0&&x<N&&y>=0&&y<N)map[y][x]=t;};
       const safe=(x,y)=>([2,9,17].includes(x)&&y<=15)||(y===15&&x>=2&&x<=17)||y>=16||y<=2;
       const kinds=[['*','*','#','S','~'],['~','~','*','#','S'],['#','#','S','S','*'],['#','*','S','~'],['~','*','#','S']][biome];
-      const density=Math.min(88,17+wave*5);
+      const density=Math.min(94,43+wave*4);
       for(let k=0;k<density;k++){
         const x=1+Math.floor(rand()*17),y=3+Math.floor(rand()*12);
-        const size=wave<3?1:wave<6?2:3,w=1+Math.floor(rand()*size),h=1+Math.floor(rand()*size);
+        const size=wave<4?2:wave<8?3:4,w=1+Math.floor(rand()*size),h=1+Math.floor(rand()*size);
         const type=kinds[Math.floor(rand()*kinds.length)];
         for(let yy=y;yy<y+h&&yy<16;yy++)for(let xx=x;xx<x+w&&xx<19;xx++)
           if(!safe(xx,yy)&&map[yy][xx]==='.'&&rand()>.12)place(xx,yy,type);
@@ -179,14 +187,14 @@
     function makeGame(coop=false){
       seed=(crypto.getRandomValues(new Uint32Array(1))[0])>>>0;seq=0;
        const level=buildMap(1);
-      return {wave:1, score:0, map:level.map,biome:level.biome, players:[makePlayer(1),makePlayer(2)],enemies:[],bullets:[],fx:[],powerups:[],powerClock:7,freeze:0,remaining:12,spawnLeft:12,spawnClock:1.3,enemyKills:0,baseAlive:true,active2:coop, won:false, gameOver:false, stageClock:0, totalTime:0};
+      return {wave:1, score:0, map:level.map,biome:level.biome, players:[makePlayer(1),makePlayer(2)],enemies:[],bullets:[],fx:[],powerups:[],powerClock:7,freeze:0,remaining:10,spawnLeft:10,spawnClock:1.3,enemyKills:0,baseAlive:true,active2:coop, won:false, gameOver:false, stageClock:0, totalTime:0};
     }
     function begin(coop){
       game=makeGame(coop);remoteGame=null;priorGame=null;phase='playing';visibleMenu(null);refreshUI();
       if(role==='host') transmit(true);
     }
     function nextWave(g){
-      g.wave++;const level=buildMap(g.wave);g.map=level.map;g.biome=level.biome;g.remaining=12+Math.min(32,(g.wave-1)*5);g.spawnLeft=g.remaining;
+      g.wave++;const level=buildMap(g.wave);g.map=level.map;g.biome=level.biome;g.remaining=10+Math.min(26,(g.wave-1)*3);g.spawnLeft=g.remaining;
       g.enemies=[];g.bullets=[];g.fx=[];g.powerups=[];g.powerClock=5;g.freeze=0;g.spawnClock=1.8;g.stageClock=0;
       g.players.forEach(p=>{if(p.hp<=0)p.hp=2;p.alive=true;p.respawn=0;p.inv=3;p.cd=0;p.x=tileCenter(p.id===1?5:14);p.y=tileCenter(18);p.dir='up';});
       toast(`Хвиля ${g.wave} — утримайте базу!`);playSound('win');
@@ -294,14 +302,14 @@
         if(input.shoot&&p.cd===0){spawnBullet(g,p);p.cd=p.rapid>0?.14:.34;}
       }
       g.spawnClock-=dt;
-      if(g.spawnLeft>0&&g.spawnClock<=0&&g.enemies.filter(e=>e.alive).length<4+Math.min(7,Math.floor(g.wave/2))){
+      if(g.spawnLeft>0&&g.spawnClock<=0&&g.enemies.filter(e=>e.alive).length<3+Math.min(5,Math.floor(g.wave/3))){
         const positions=[2,9,17],start=Math.floor(rand()*positions.length);
         for(let i=0;i<positions.length;i++){
           const tx=positions[(start+i)%positions.length],candidate={x:tileCenter(tx),y:tileCenter(1),alive:true};
           if(clearTank(g,candidate,candidate.x,candidate.y)){
             const kind=pickEnemyType(g.wave),spec=ENEMY_CLASSES[kind];
-             const e={id:newId(),x:candidate.x,y:candidate.y,dir:'down',hp:spec.hp,maxHp:spec.hp,kind,team:'enemy',alive:true,cd:between(.6,1.3),turn:between(.4,1.1),speed:spec.speed+Math.min(30,g.wave*1.5),fire:spec.fire};
-            g.enemies.push(e);g.spawnLeft--;g.spawnClock=Math.max(.42,1.85-g.wave*.105);break;
+             const e={id:newId(),x:candidate.x,y:candidate.y,dir:'down',hp:spec.hp,maxHp:spec.hp,kind,team:'enemy',alive:true,cd:between(.6,1.3),turn:between(.4,1.1),speed:spec.speed+Math.min(23,(g.wave-1)*1.2),fire:spec.fire};
+            g.enemies.push(e);g.spawnLeft--;g.spawnClock=Math.max(.67,2.25-g.wave*.09);break;
           }
         }
         if(g.spawnClock<=0)g.spawnClock=.4;
@@ -315,7 +323,7 @@
           e.dir=weighted[Math.floor(rand()*weighted.length)];e.turn=between(.5,1.8);
         }
         if(!moveEntity(g,e,e.dir,e.speed*dt)){e.turn=0;}
-        if(e.cd<=0){spawnBullet(g,e);e.cd=between(.75,1.35)*e.fire*Math.max(.6,1-g.wave*.022);}
+        if(e.cd<=0){spawnBullet(g,e);e.cd=between(.85,1.4)*e.fire*Math.max(.74,1-(g.wave-1)*.015);}
       }
       // Кулі рухаються невеликими кроками, щоби не проходили крізь стіни на поворотах кадру.
       for(const b of g.bullets){
@@ -496,7 +504,7 @@
       const v=role==='guest'?remoteGame:game;
       $('waveStat').textContent=String(v?.wave||1).padStart(2,'0');
       $('levelTitle').textContent='▸ МІСІЯ '+String(v?.wave||1).padStart(2,'0')+(v?' · '+TERRAINS[v.biome||0]:'');
-      $('enemiesStat').textContent=v?.remaining??12;
+      $('enemiesStat').textContent=v?.remaining??10;
       $('scoreStat').textContent=(v?.score||0).toLocaleString('uk-UA');
       const p1=v?.players?.find(p=>p.id===1),p2=v?.players?.find(p=>p.id===2);
       $('player1Hp').textContent=p1?'♥'.repeat(p1.hp)+'♡'.repeat(Math.max(0,3-p1.hp)):'♥♥♥';
