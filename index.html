@@ -50,6 +50,18 @@
       .wrap:fullscreen .side{grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;max-height:none}
     }
     @media(pointer:coarse){.wrap:fullscreen .stage{width:min(100%,calc(100dvh - 245px))}.wrap:fullscreen .touch-pad{display:flex;width:min(100%,580px)}}
+
+    /* 26 × 20 actual rectangular game canvas — sidebar stays on the right. */
+    .wrap{max-width:1470px}
+    .layout{grid-template-columns:minmax(0,1050px) minmax(265px,340px)}
+    .stage{width:100%;max-width:none}
+    .board{aspect-ratio:26/20;width:100%}
+    .wrap:fullscreen .layout{grid-template-columns:minmax(0,1fr) clamp(255px,22vw,350px)}
+    .wrap:fullscreen .stage{width:min(100%,calc((100dvh - 92px)*1.3));max-width:none}
+    .wrap:fullscreen .board{aspect-ratio:26/20;height:auto;width:100%}
+    @media(max-width:970px){.layout{grid-template-columns:1fr}.stage{max-width:none}.side{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:650px){.side{grid-template-columns:1fr}}
+    @media(max-width:800px){.wrap:fullscreen .layout{grid-template-columns:1fr}.wrap:fullscreen .stage{width:min(100%,calc((100dvh - 180px)*1.3))}}
   </style>
 </head>
 <body>
@@ -60,7 +72,7 @@
     </header>
     <main class="layout">
       <section class="game-column" aria-label="Ігрове поле">
-        <div class="stage"><div class="stage-top"><strong id="levelTitle">▸ МІСІЯ 01</strong><span id="modeTitle">ГОТОВІ ДО БОЮ?</span><button type="button" id="fullscreenBtn" class="icon-btn" title="На весь екран (F)" aria-label="На весь екран" aria-pressed="false">⛶</button></div><div class="board" id="board"><canvas id="game" width="640" height="640" aria-label="Ігрове поле танчиків"></canvas>
+        <div class="stage"><div class="stage-top"><strong id="levelTitle">▸ МІСІЯ 01</strong><span id="modeTitle">ГОТОВІ ДО БОЮ?</span><button type="button" id="fullscreenBtn" class="icon-btn" title="На весь екран (F)" aria-label="На весь екран" aria-pressed="false">⛶</button></div><div class="board" id="board"><canvas id="game" width="832" height="640" aria-label="Ігрове поле танчиків"></canvas>
           <div class="overlay" id="overlay">
             <div class="menu" id="menuHome">
               <span class="menu-icon">🛡️</span><h1>ЗАХИСТИ БАЗУ</h1><p>Танчики, цегляні стіни, ворожі хвилі — як у дитинстві. Об'єднайтесь із другом і не дайте ворогам зруйнувати штаб.</p>
@@ -125,7 +137,7 @@
     $('fullscreenBtn').addEventListener('click',toggleFullscreen);
     document.addEventListener('fullscreenchange',updateFullscreenButton);
     document.addEventListener('keydown',e=>{if(e.code==='KeyF'&&!e.repeat&&!(e.target instanceof HTMLInputElement)&&!(e.target instanceof HTMLTextAreaElement)&&!e.ctrlKey&&!e.metaKey&&!e.altKey){e.preventDefault();toggleFullscreen();}});
-    const N=20, TILE=32, SIZE=640, TAU=Math.PI*2;
+    const N=20, COLS=26, TILE=32, WIDTH=COLS*TILE, HEIGHT=N*TILE, BASE_X=12, PLAYER_X=[7,19], SPAWN_X=[3,12,22], TAU=Math.PI*2;
     const DIR={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
     const COLORS={1:'#f3d46e',2:'#67cef7',enemy:'#f37783'};
     const keys={up:false,down:false,left:false,right:false,shoot:false,heading:'up'};
@@ -184,37 +196,37 @@
       return 'basic';
     }
     function buildMap(wave){
-      const map=Array.from({length:N},()=>Array(N).fill('.'));
+      const map=Array.from({length:N},()=>Array(COLS).fill('.'));
       const biome=Math.floor(rand()*TERRAINS.length);
-      const place=(x,y,t)=>{if(x>=0&&x<N&&y>=0&&y<N)map[y][x]=t;};
-      const safe=(x,y)=>([2,9,17].includes(x)&&y<=15)||(y===15&&x>=2&&x<=17)||y>=16||y<=2;
+      const place=(x,y,t)=>{if(x>=0&&x<COLS&&y>=0&&y<N)map[y][x]=t;};
+      const reserved=(x,y)=>y<=2||y>=16||(y===15&&x>=2&&x<=23)||SPAWN_X.includes(x)&&y<=15;
       const kinds=[['*','*','#','S','~'],['~','~','*','#','S'],['#','#','S','S','*'],['#','*','S','~'],['~','*','#','S']][biome];
-      const density=Math.min(94,43+wave*4);
+      const density=Math.min(132,54+wave*6);
       for(let k=0;k<density;k++){
-        const x=1+Math.floor(rand()*17),y=3+Math.floor(rand()*12);
+        const x=1+Math.floor(rand()*(COLS-2)),y=3+Math.floor(rand()*12);
         const size=wave<4?2:wave<8?3:4,w=1+Math.floor(rand()*size),h=1+Math.floor(rand()*size);
         const type=kinds[Math.floor(rand()*kinds.length)];
-        for(let yy=y;yy<y+h&&yy<16;yy++)for(let xx=x;xx<x+w&&xx<19;xx++)
-          if(!safe(xx,yy)&&map[yy][xx]==='.'&&rand()>.12)place(xx,yy,type);
+        for(let yy=y;yy<y+h&&yy<16;yy++)for(let xx=x;xx<x+w&&xx<COLS-1;xx++)
+          if(!reserved(xx,yy)&&map[yy][xx]==='.'&&rand()>.12)place(xx,yy,type);
       }
-      if(wave>=4)for(const [x,y] of [[4,9],[5,9],[14,9],[15,9]])if(!safe(x,y))place(x,y,biome===1?'~':'*');
-      if(wave>=7)for(const [x,y] of [[4,12],[5,12],[14,12],[15,12]])if(!safe(x,y))place(x,y,biome===2?'S':'#');
-      for(let y=1;y<=15;y++)for(const x of [2,9,17])place(x,y,'.');
-      for(let x=2;x<=17;x++)place(x,15,'.');
+      // Keep three navigable lanes with cross-connections.
+      for(let y=1;y<=15;y++)for(const x of SPAWN_X)place(x,y,'.');
+      for(let x=2;x<=23;x++)place(x,15,'.');
       for(const y of wave<=2?[10]:wave<=5?[7,12]:[5,9,13]){
-        for(const x of [8,9,10])place(x,y,wave>=8?'S':'#');
-        for(const x of [7,11])for(const yy of [y-1,y,y+1])place(x,yy,'.');
+        for(const x of [BASE_X-1,BASE_X,BASE_X+1])place(x,y,wave>=8?'S':'#');
+        for(const x of [BASE_X-2,BASE_X+2])for(const yy of [y-1,y,y+1])place(x,yy,'.');
       }
-      const inner=[[8,17],[9,17],[10,17],[8,18],[10,18]];
-      const outer=[[8,16],[9,16],[10,16],[7,17],[11,17],[7,18],[11,18]];
+      const inner=[[BASE_X-1,17],[BASE_X,17],[BASE_X+1,17],[BASE_X-1,18],[BASE_X+1,18]];
+      const outer=[[BASE_X-1,16],[BASE_X,16],[BASE_X+1,16],[BASE_X-2,17],[BASE_X+2,17],[BASE_X-2,18],[BASE_X+2,18]];
       for(const [x,y] of inner)place(x,y,wave>=6?'S':'#');
-      if(wave>=2)for(const [x,y] of outer)place(x,y,wave>=8?'S':wave>=4&&x===9?'S':'#');
-      place(9,18,'B');
-      for(const [x,y] of [[5,17],[5,18],[14,17],[14,18],[2,1],[9,1],[17,1]])place(x,y,'.');
+      if(wave>=2)for(const [x,y] of outer)place(x,y,wave>=8?'S':wave>=4&&x===BASE_X?'S':'#');
+      place(BASE_X,18,'B');
+      for(const x of PLAYER_X)for(const y of [17,18])place(x,y,'.');
+      for(const x of SPAWN_X)place(x,1,'.');
       return {map:map.map(row=>row.join('')),biome};
     }
     function makePlayer(id){
-      return {id,x:tileCenter(id===1?5:14),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0,pierce:0,boost:0,armor:0};
+      return {id,x:tileCenter(PLAYER_X[id-1]),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0,pierce:0,boost:0,armor:0};
     }
     function makeGame(coop=false){
       seed=(crypto.getRandomValues(new Uint32Array(1))[0])>>>0;seq=0;
@@ -228,11 +240,11 @@
     function nextWave(g){
       g.wave++;const level=buildMap(g.wave);g.map=level.map;g.biome=level.biome;g.remaining=10+Math.min(26,(g.wave-1)*3);g.spawnLeft=g.remaining;
       g.enemies=[];g.bullets=[];g.fx=[];g.powerups=[];g.powerClock=5;g.freeze=0;g.baseShield=0;g.spawnClock=1.8;g.stageClock=0;
-      g.players.forEach(p=>{if(p.hp<=0)p.hp=2;p.alive=true;p.respawn=0;p.inv=3;p.cd=0;p.x=tileCenter(p.id===1?5:14);p.y=tileCenter(18);p.dir='up';});
+      g.players.forEach(p=>{if(p.hp<=0)p.hp=2;p.alive=true;p.respawn=0;p.inv=3;p.cd=0;p.x=tileCenter(PLAYER_X[p.id-1]);p.y=tileCenter(18);p.dir='up';});
       toast(`Хвиля ${g.wave} — утримайте базу!`);playSound('win');
       if(role==='host')transmit(true);
     }
-    function tileAt(g,x,y){const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);return (tx<0||ty<0||tx>=N||ty>=N)?'S':g.map[ty][tx];}
+    function tileAt(g,x,y){const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);return (tx<0||ty<0||tx>=COLS||ty>=N)?'S':g.map[ty][tx];}
     function solid(ch){return ch==='#'||ch==='S'||ch==='~'||ch==='B';}
     function clearTank(g,t,nx,ny){
       const r=12.4;
@@ -277,7 +289,7 @@
       for(let i=0;i<count;i++){const a=between(0,TAU),sp=between(30,145);g.fx.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:between(.2,.45),max:.45,color});}
       if(g.fx.length>90)g.fx.splice(0,g.fx.length-90);
     }
-    function writeTile(g,x,y,t){const ty=Math.floor(y/TILE),tx=Math.floor(x/TILE);if(ty>=0&&ty<N&&tx>=0&&tx<N){const row=g.map[ty];g.map[ty]=row.slice(0,tx)+t+row.slice(tx+1);}}
+    function writeTile(g,x,y,t){const ty=Math.floor(y/TILE),tx=Math.floor(x/TILE);if(ty>=0&&ty<N&&tx>=0&&tx<COLS){const row=g.map[ty];g.map[ty]=row.slice(0,tx)+t+row.slice(tx+1);}}
     function killPlayer(g,p){
       if(p.inv>0||p.shield>0||!p.alive)return;
       if(p.armor>0){p.armor=0;burst(g,p.x,p.y,'#d8e5ff',10);playSound('hit');return;}
@@ -336,7 +348,7 @@
       }
       g.spawnClock-=dt;
       if(g.spawnLeft>0&&g.spawnClock<=0&&g.enemies.filter(e=>e.alive).length<3+Math.min(5,Math.floor(g.wave/3))){
-        const positions=[2,9,17],start=Math.floor(rand()*positions.length);
+        const positions=SPAWN_X,start=Math.floor(rand()*positions.length);
         for(let i=0;i<positions.length;i++){
           const tx=positions[(start+i)%positions.length],candidate={x:tileCenter(tx),y:tileCenter(1),alive:true};
           if(clearTank(g,candidate,candidate.x,candidate.y)){
@@ -352,7 +364,7 @@
         if(g.freeze>0)continue;e.cd-=dt;e.turn-=dt;
         if(e.turn<=0){
           const wantBase=rand()<.62;
-          const weighted=wantBase?(e.x<tileCenter(9)?['down','right','down','left']:['down','left','down','right']):['down','left','right','up'];
+          const weighted=wantBase?(e.x<tileCenter(BASE_X)?['down','right','down','left']:['down','left','down','right']):['down','left','right','up'];
           e.dir=weighted[Math.floor(rand()*weighted.length)];e.turn=between(.5,1.8);
         }
         if(!moveEntity(g,e,e.dir,e.speed*dt)){e.turn=0;}
@@ -365,7 +377,7 @@
         const steps=Math.max(1,Math.ceil(speed*dt/7));
         for(let i=0;i<steps&&b.alive;i++){
           b.x+=dx*speed*dt/steps;b.y+=dy*speed*dt/steps;
-          if(b.x<0||b.y<0||b.x>=SIZE||b.y>=SIZE){b.alive=false;break;}
+          if(b.x<0||b.y<0||b.x>=WIDTH||b.y>=HEIGHT){b.alive=false;break;}
           const hit=tileAt(g,b.x,b.y);
           if(hit==='B'){b.alive=false;if(g.baseShield>0){burst(g,b.x,b.y,'#58f7d6',18);playSound('hit');break;}g.baseAlive=false;burst(g,b.x,b.y,'#f6cb67',30);gameLost(g);break;}
           if(hit==='#'){writeTile(g,b.x,b.y,'.');if(!b.pierce)b.alive=false;burst(g,b.x,b.y,'#d28c65',5);if(!b.alive)break;}
@@ -593,7 +605,7 @@
     }
     function drawBaseShield(g,time){
       if(!g.baseAlive||!(g.baseShield>0))return;
-      const x=tileCenter(9),y=tileCenter(18),pulse=Math.sin(time*6)*2;
+      const x=tileCenter(BASE_X),y=tileCenter(18),pulse=Math.sin(time*6)*2;
       ctx.save();ctx.shadowColor='#58f7d6';ctx.shadowBlur=16;
       ctx.strokeStyle='#64ffe2';ctx.lineWidth=3.5;
       ctx.beginPath();ctx.arc(x,y,23+pulse,0,TAU);ctx.stroke();
@@ -602,25 +614,25 @@
     }
     function background(time,biome=0){
       const palettes=[['#1b302d','#203b32'],['#153245','#193f50'],['#2a343a','#2f3b43'],['#3b3229','#44382d'],['#1c3028','#283e30']];
-      const c=palettes[biome]||palettes[0],g=ctx.createLinearGradient(0,0,SIZE,SIZE);
-      g.addColorStop(0,c[0]);g.addColorStop(1,c[1]);ctx.fillStyle=g;ctx.fillRect(0,0,SIZE,SIZE);
-      for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+      const c=palettes[biome]||palettes[0],g=ctx.createLinearGradient(0,0,WIDTH,HEIGHT);
+      g.addColorStop(0,c[0]);g.addColorStop(1,c[1]);ctx.fillStyle=g;ctx.fillRect(0,0,WIDTH,HEIGHT);
+      for(let y=0;y<N;y++)for(let x=0;x<COLS;x++){
         const n=(x*37+y*59+x*y*13)%17,px=x*TILE,py=y*TILE;
         ctx.fillStyle=n%2?'#ffffff08':'#00000008';ctx.fillRect(px+2,py+2,29,29);
         if(n%3===0){ctx.fillStyle='#ffffff15';ctx.fillRect(px+8+n%9,py+10+n%7,2,2);}
         if(n%5===0){ctx.fillStyle='#00000018';ctx.fillRect(px+18,py+25,6,2);}
       }
       ctx.strokeStyle='#ffffff09';ctx.lineWidth=.7;ctx.beginPath();
-      for(let i=0;i<=N;i++){ctx.moveTo(i*TILE,0);ctx.lineTo(i*TILE,SIZE);ctx.moveTo(0,i*TILE);ctx.lineTo(SIZE,i*TILE);}
+      for(let i=0;i<=COLS;i++){ctx.moveTo(i*TILE,0);ctx.lineTo(i*TILE,HEIGHT);}for(let i=0;i<=N;i++){ctx.moveTo(0,i*TILE);ctx.lineTo(WIDTH,i*TILE);}
       ctx.stroke();
     }
     function render(time){
       const v=getView();background(time,v?.biome||0);
       if(!v){ // Декорація в головному меню.
         const map=previewMap;renderMap(map,time,false);
-        tank({x:tileCenter(5),y:tileCenter(18),dir:'up',alive:true},COLORS[1],time);
-        tank({x:tileCenter(14),y:tileCenter(18),dir:'up',alive:true},COLORS[2],time);
-        for(const [x,y] of [[2,2],[10,5],[16,8]])tank({x:tileCenter(x),y:tileCenter(y),dir:'down',alive:true,team:'enemy'},COLORS.enemy,time);
+        tank({x:tileCenter(PLAYER_X[0]),y:tileCenter(18),dir:'up',alive:true},COLORS[1],time);
+        tank({x:tileCenter(PLAYER_X[1]),y:tileCenter(18),dir:'up',alive:true},COLORS[2],time);
+        for(const [x,y] of [[3,2],[12,5],[22,8]])tank({x:tileCenter(x),y:tileCenter(y),dir:'down',alive:true,team:'enemy'},COLORS.enemy,time);
         renderMap(map,time,true);return;
       }
       renderMap(v.map,time,false);
@@ -631,11 +643,11 @@
       for(const p of v.fx||[]){ctx.globalAlpha=limit(p.life*3,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-3,p.y-3,6,6);}ctx.globalAlpha=1;
       renderMap(v.map,time,true);
        drawBaseShield(v,time);
-      if(!v.baseAlive){const x=tileCenter(9),y=tileCenter(18);ctx.fillStyle='#9b3a31';ctx.fillRect(x-12,y-10,25,22);ctx.fillStyle='#2a1b23';ctx.fillRect(x-7,y-4,15,15);}
+      if(!v.baseAlive){const x=tileCenter(BASE_X),y=tileCenter(18);ctx.fillStyle='#9b3a31';ctx.fillRect(x-12,y-10,25,22);ctx.fillStyle='#2a1b23';ctx.fillRect(x-7,y-4,15,15);}
     }
     function renderMap(map,time,foreground){
       if(!map)return;
-      for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+      for(let y=0;y<N;y++)for(let x=0;x<COLS;x++){
         const ch=map[y]?.[x];if(foreground!== (ch==='*'))continue;
         const px=x*TILE,py=y*TILE;
         if(ch==='#')brick(px,py);else if(ch==='S')metal(px,py);else if(ch==='~')water(px,py,time);else if(ch==='B')base(px,py);else if(ch==='*')bush(px,py);
@@ -694,7 +706,7 @@
         friendHere=true;
         if(phase==='waiting'||!game){begin(true);}else{
           game.active2=true;
-          const p=game.players[1];p.hp=Math.max(1,p.hp);p.alive=true;p.x=tileCenter(14);p.y=tileCenter(18);p.inv=3;
+          const p=game.players[1];p.hp=Math.max(1,p.hp);p.alive=true;p.x=tileCenter(PLAYER_X[1]);p.y=tileCenter(18);p.inv=3;
         }
         try{c.send({t:'welcome',code:roomCode});}catch(_){ }
         transmit(true);toast('Друг підключився! До бою!');refreshUI();
