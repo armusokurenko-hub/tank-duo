@@ -106,7 +106,7 @@
     const POWER_COLORS={cannon:'#ffd56a',shield:'#69d9ff',rapid:'#ff8c57',heal:'#77e6a1',freeze:'#b3a1ff',pierce:'#ff5eac'};
     const POWER_ICONS={cannon:'★',shield:'◆',rapid:'⚡',heal:'+',freeze:'❄',pierce:'✦'};
     const PEER_OPTIONS={debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
-    let joinAttempt=0,joinTimer=null,hostReady=false;
+    let joinAttempt=0,joinTimer=null,hostReady=false,lastBackupSend=0,latestBackup=null;
     function stopJoinTimer(){clearTimeout(joinTimer);joinTimer=null;}
     const newId=()=>++seq;
     let previewMap=null;
@@ -328,10 +328,25 @@
          powerups:g.powerups.map(p=>({id:p.id,x:p.x,y:p.y,type:p.type})),freeze:g.freeze,
         fx:g.fx.slice(-28).map(p=>({x:Math.round(p.x),y:Math.round(p.y),color:p.color,life:p.life}))};
     }
+    function makeBackup(){return JSON.parse(JSON.stringify(game));}
+    function promoteGuest(){
+      if(role!=='guest'||!latestBackup||!['playing','connecting','ended'].includes(phase))return false;
+      const recovered=latestBackup;
+      if(!recovered.players?.[1])return false;
+      recovered.players[0]={...recovered.players[1],id:1};
+      recovered.players[1]=makePlayer(2);
+      recovered.active2=false;
+      game=recovered;remoteGame=null;priorGame=null;role='solo';friendHere=false;
+      phase=game.gameOver?'ended':'playing';
+      if(peer){try{peer.destroy();}catch(_){ }peer=null;}
+      connection=null;clearKeys();visibleMenu(game.gameOver?'menuEnd':null);
+      toast('Хост відключився — місія продовжується!');
+      refreshUI();return true;
+    }
     function transmit(force=false){
       if(role!=='host'||!connection?.open||!game)return;
       const now=performance.now();if(!force&&now-lastSend<65)return;lastSend=now;
-      try{connection.send({t:'state',state:pack(game),phase});}catch(_){ }
+      try{connection.send({t:'state',state:pack(game),phase});if(force||now-lastBackupSend>1000){connection.send({t:'backup',game:makeBackup()});lastBackupSend=now;}}catch(_){ }
     }
     function getView(){
       if(role!=='guest')return game;
@@ -441,7 +456,8 @@
     }
     function clearKeys(){for(const d of ['up','down','left','right','shoot']){keys[d]=false;remoteKeys[d]=false;}document.querySelectorAll('.touch-pad .pressed').forEach(el=>el.classList.remove('pressed'));}
     function leave(){
-      stopJoinTimer();joinAttempt=0;hostReady=false;try{connection?.close();peer?.destroy();}catch(_){ }
+      if(role==='host'&&connection?.open&&game){try{connection.send({t:'handoff',game:makeBackup()});}catch(_){ }}
+       stopJoinTimer();joinAttempt=0;hostReady=false;latestBackup=null;try{connection?.close();peer?.destroy();}catch(_){ }
       connection=null;peer=null;roomCode='';friendHere=false;pingMs=null;role='none';phase='menu';game=null;remoteGame=null;priorGame=null;clearKeys();visibleMenu('menuHome');$('homeError').textContent='';refreshUI();
     }
     function randomCode(){
@@ -484,7 +500,8 @@
       });
       c.on('close',()=>{
         if(connection!==c)return;
-        connection=null;friendHere=false;clearKeys();
+        connection=null;friendHere=false;
+         for(const k of ['up','down','left','right','shoot'])remoteKeys[k]=false;
         if(game)game.active2=false;
         toast('Друг відключився. Можна продовжити одному.');refreshUI();
       });
@@ -517,7 +534,8 @@
         c.on('open',()=>{stopJoinTimer();$('connectError').textContent='';$('connectInfo').textContent='З’єднання встановлено. Очікуємо ігрове поле...';refreshUI();});
         c.on('data',(data)=>{
           if(role!=='guest'||connection!==c||!data||typeof data!=='object')return;
-          if(data.t==='full'){$('connectError').textContent='У кімнаті вже грають удвох.';c.close();return;}
+          if((data.t==='backup'||data.t==='handoff')&&data.game){latestBackup=data.game;if(data.t==='handoff')promoteGuest();return;}
+           if(data.t==='full'){$('connectError').textContent='У кімнаті вже грають удвох.';c.close();return;}
           if(data.t==='welcome'){
             phase='playing';visibleMenu(null);toast('Ви приєднались як гравець 2!');refreshUI();
           }
@@ -534,7 +552,8 @@
         });
         c.on('close',()=>{
           if(role==='guest'&&connection===c){
-            connection=null;remoteGame=null;priorGame=null;phase='connecting';visibleMenu('menuConnect');$('connectInfo').textContent='З’єднання розірвано.';$('connectError').textContent='Попроси друга створити нову кімнату або повтори підключення.';
+            if(promoteGuest())return;
+             connection=null;remoteGame=null;priorGame=null;phase='connecting';visibleMenu('menuConnect');$('connectInfo').textContent='З’єднання розірвано.';$('connectError').textContent='Резервного стану немає — створи власну кімнату.';
           }
         });
         c.on('error',()=>{$('connectError').textContent='Помилка підключення. Перевір код і спробуй ще раз.';});
