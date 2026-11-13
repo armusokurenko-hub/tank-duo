@@ -66,7 +66,7 @@
         <div class="card"><div class="card-label">Поточна місія</div>
           <div class="stat-row"><span class="stat-name">Хвиля</span><span class="stat-value" id="waveStat">01</span></div>
           <div class="stat-row"><span class="stat-name">Ворогів залишилось</span><span class="stat-value" id="enemiesStat">12</span></div>
-          <div class="stat-row"><span class="stat-name">Очки команди</span><span class="stat-value" id="scoreStat">0</span></div>
+          <div class="stat-row"><span class="stat-name">Очки команди</span><span class="stat-value" id="scoreStat">0</span></div><div class="stat-row"><span class="stat-name">Захист бази</span><strong class="stat-value" id="baseShieldStat" style="color:#58f7d6;font-size:15px">Неактивний</strong></div>
           <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Команда</div>
           <div class="player"><div class="player-left"><i class="color-dot p1"></i><span>Гравець 1 <span class="tiny" id="player1Role">(ви)</span></span></div><span class="hearts" id="player1Hp">♥♥♥</span></div>
           <div class="player"><div class="player-left"><i class="color-dot p2"></i><span>Гравець 2 <span class="tiny" id="player2Role">(очікуємо)</span></span></div><span class="hearts" id="player2Hp">—</span></div>
@@ -75,7 +75,7 @@
         <div class="card"><div class="card-label">Як керувати</div><div class="control-line"><span class="control-keys"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></span><span>рух танка</span></div>
           <div class="control-line"><span class="control-keys"><span class="kbd">↑</span><span class="kbd">←</span><span class="kbd">↓</span><span class="kbd">→</span></span><span>також рух</span></div>
           <div class="control-line"><span class="kbd" style="min-width:72px">SPACE</span><span>постріл</span></div>
-          <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Перешкоди</div><div class="legend"><span>🧱 Цегла — ламається</span><span>⬜ Сталь — міцна</span><span>💧 Вода — не проїхати</span><span>🌿 Кущі — маскування</span></div><div class="separator"></div><div class="card-label" style="margin-bottom:7px">Вороги та бонуси</div><div class="legend"><span>🟡 Легкі — швидкі</span><span>🟣 Важкі — броньовані</span><span>🔴 Стрільці — часті постріли</span><span>🩷 Елітні — з 9 хвилі</span><span>➤ Турбо — швидший рух</span><span>⬡ Броня — поглинає удар</span></div>
+          <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Перешкоди</div><div class="legend"><span>🧱 Цегла — ламається</span><span>⬜ Сталь — міцна</span><span>💧 Вода — не проїхати</span><span>🌿 Кущі — маскування</span></div><div class="separator"></div><div class="card-label" style="margin-bottom:7px">Вороги та бонуси</div><div class="legend"><span>🟡 Легкі — швидкі</span><span>🟣 Важкі — броньовані</span><span>🔴 Стрільці — часті постріли</span><span>🩷 Елітні — з 9 хвилі</span><span>➤ Турбо — швидший рух</span><span>⬡ Броня — поглинає удар</span><span>⛨ Щит бази — 20 секунд</span></div>
         </div>
         <div class="card"><div class="card-label">Гра з другом</div><div class="note" id="helpText">Один створює кімнату, копіює посилання і надсилає другу. Друг відкриває його, вводить код — і ви граєте разом через інтернет.</div><div class="stat-row" style="margin-bottom:0"><span class="stat-name">Мережа</span><strong style="color:#a6e8b3" id="netStat">Не підключена</strong></div></div>
       </aside>
@@ -102,9 +102,9 @@
     let snapshotAt=0, peer=null, connection=null, roomCode='', friendHere=false;
     let muted=false, sound=null, pendingToast=0, lastUI=0, lastSend=0, lastInputSend=0, lastPing=0, pingMs=null, lastTick=performance.now();
     let seq=0, seed=1123;
-    const POWER_TYPES=['cannon','shield','rapid','heal','freeze','pierce','boost','armor'];
-    const POWER_COLORS={cannon:'#ffd56a',shield:'#69d9ff',rapid:'#ff8c57',heal:'#77e6a1',freeze:'#b3a1ff',pierce:'#ff5eac',boost:'#98ff60',armor:'#d8e5ff'};
-    const POWER_ICONS={cannon:'★',shield:'◆',rapid:'⚡',heal:'+',freeze:'❄',pierce:'✦',boost:'➤',armor:'⬡'};
+    const POWER_TYPES=['cannon','shield','rapid','heal','freeze','pierce','boost','armor','baseShield'];
+    const POWER_COLORS={cannon:'#ffd56a',shield:'#69d9ff',rapid:'#ff8c57',heal:'#77e6a1',freeze:'#b3a1ff',pierce:'#ff5eac',boost:'#98ff60',armor:'#d8e5ff',baseShield:'#58f7d6'};
+    const POWER_ICONS={cannon:'★',shield:'◆',rapid:'⚡',heal:'+',freeze:'❄',pierce:'✦',boost:'➤',armor:'⬡',baseShield:'⛨'};
     const PEER_OPTIONS={debug:1,config:{iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]}};
     let joinAttempt=0,joinTimer=null,hostReady=false,lastBackupSend=0,latestBackup=null,lastHostStateAt=0,hostRegisterTimer=null,hostRegisterAttempts=0,lastLocalFire=0,lastGuestWave=0;
     function stopJoinTimer(){clearTimeout(joinTimer);joinTimer=null;}
@@ -187,7 +187,7 @@
     function makeGame(coop=false){
       seed=(crypto.getRandomValues(new Uint32Array(1))[0])>>>0;seq=0;
        const level=buildMap(1);
-      return {wave:1, score:0, map:level.map,biome:level.biome, players:[makePlayer(1),makePlayer(2)],enemies:[],bullets:[],fx:[],powerups:[],powerClock:7,freeze:0,remaining:10,spawnLeft:10,spawnClock:1.3,enemyKills:0,baseAlive:true,active2:coop, won:false, gameOver:false, stageClock:0, totalTime:0};
+      return {wave:1, score:0, map:level.map,biome:level.biome, players:[makePlayer(1),makePlayer(2)],enemies:[],bullets:[],fx:[],powerups:[],powerClock:7,freeze:0,baseShield:0,remaining:10,spawnLeft:10,spawnClock:1.3,enemyKills:0,baseAlive:true,active2:coop, won:false, gameOver:false, stageClock:0, totalTime:0};
     }
     function begin(coop){
       game=makeGame(coop);remoteGame=null;priorGame=null;phase='playing';visibleMenu(null);refreshUI();
@@ -195,7 +195,7 @@
     }
     function nextWave(g){
       g.wave++;const level=buildMap(g.wave);g.map=level.map;g.biome=level.biome;g.remaining=10+Math.min(26,(g.wave-1)*3);g.spawnLeft=g.remaining;
-      g.enemies=[];g.bullets=[];g.fx=[];g.powerups=[];g.powerClock=5;g.freeze=0;g.spawnClock=1.8;g.stageClock=0;
+      g.enemies=[];g.bullets=[];g.fx=[];g.powerups=[];g.powerClock=5;g.freeze=0;g.baseShield=0;g.spawnClock=1.8;g.stageClock=0;
       g.players.forEach(p=>{if(p.hp<=0)p.hp=2;p.alive=true;p.respawn=0;p.inv=3;p.cd=0;p.x=tileCenter(p.id===1?5:14);p.y=tileCenter(18);p.dir='up';});
       toast(`Хвиля ${g.wave} — утримайте базу!`);playSound('win');
       if(role==='host')transmit(true);
@@ -275,8 +275,9 @@
        if(power.type==='pierce')p.pierce=14;
        if(power.type==='boost')p.boost=13;
        if(power.type==='armor')p.armor=18;
+       if(power.type==='baseShield')g.baseShield=Math.max(g.baseShield||0,20);
        g.score+=50;burst(g,p.x,p.y,POWER_COLORS[power.type],14);playSound('win');
-       toast(({cannon:'ГАРМАТУ ПОСИЛЕНО!',shield:'ЩИТ НА 12 СЕКУНД!',rapid:'ШВИДКОСТРІЛЬНІСТЬ!',heal:'+1 ЖИТТЯ!',freeze:'ВОРОГІВ ЗАМОРОЖЕНО!',pierce:'БРОНЕБІЙНІ СНАРЯДИ!',boost:'ТУРБО-ДВИГУН!',armor:'ПОСИЛЕНА БРОНЯ!'})[power.type]);
+       toast(({cannon:'ГАРМАТУ ПОСИЛЕНО!',shield:'ЩИТ НА 12 СЕКУНД!',rapid:'ШВИДКОСТРІЛЬНІСТЬ!',heal:'+1 ЖИТТЯ!',freeze:'ВОРОГІВ ЗАМОРОЖЕНО!',pierce:'БРОНЕБІЙНІ СНАРЯДИ!',boost:'ТУРБО-ДВИГУН!',armor:'ПОСИЛЕНА БРОНЯ!',baseShield:'ЩИТ БАЗИ — 20 СЕКУНД!'})[power.type]);
        power.ttl=0;
     }
     function gameLost(g){
@@ -289,7 +290,7 @@
     }
     function step(g,dt){
       g.totalTime+=dt;g.stageClock+=dt;
-       g.powerClock-=dt;g.freeze=Math.max(0,g.freeze-dt);
+       g.powerClock-=dt;g.freeze=Math.max(0,g.freeze-dt);g.baseShield=Math.max(0,(g.baseShield||0)-dt);
        if(g.powerClock<=0){spawnPowerup(g);g.powerClock=between(9,15);}
        for(const power of g.powerups){power.ttl-=dt;if(power.ttl>0)for(const p of g.players){if(p.alive&&(p.id===1||g.active2)&&Math.hypot(p.x-power.x,p.y-power.y)<24){collectPowerup(g,p,power);break;}}}
        g.powerups=g.powerups.filter(p=>p.ttl>0);
@@ -334,7 +335,7 @@
           b.x+=dx*speed*dt/steps;b.y+=dy*speed*dt/steps;
           if(b.x<0||b.y<0||b.x>=SIZE||b.y>=SIZE){b.alive=false;break;}
           const hit=tileAt(g,b.x,b.y);
-          if(hit==='B'){b.alive=false;g.baseAlive=false;burst(g,b.x,b.y,'#f6cb67',30);gameLost(g);break;}
+          if(hit==='B'){b.alive=false;if(g.baseShield>0){burst(g,b.x,b.y,'#58f7d6',18);playSound('hit');break;}g.baseAlive=false;burst(g,b.x,b.y,'#f6cb67',30);gameLost(g);break;}
           if(hit==='#'){writeTile(g,b.x,b.y,'.');if(!b.pierce)b.alive=false;burst(g,b.x,b.y,'#d28c65',5);if(!b.alive)break;}
           if(hit==='S'){if(b.team!=='enemy'&&(b.gun>=3||b.pierce))writeTile(g,b.x,b.y,'.');if(!b.pierce)b.alive=false;burst(g,b.x,b.y,b.pierce?'#ff5eac':'#a6b7cd',4);if(!b.alive)break;}
           const targets=b.team==='enemy'?g.players:g.enemies;
@@ -354,7 +355,7 @@
       if(!g.gameOver&&g.remaining<=0&&g.spawnLeft<=0)nextWave(g);
     }
     function pack(g){
-      return {wave:g.wave,score:g.score,map:g.map,biome:g.biome,remaining:g.remaining,baseAlive:g.baseAlive,active2:g.active2,gameOver:g.gameOver,
+      return {wave:g.wave,score:g.score,map:g.map,biome:g.biome,remaining:g.remaining,baseAlive:g.baseAlive,baseShield:g.baseShield||0,active2:g.active2,gameOver:g.gameOver,
         players:g.players.map(p=>({id:p.id,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid,pierce:p.pierce,boost:p.boost,armor:p.armor})),
         enemies:g.enemies.map(e=>({id:e.id,x:Math.round(e.x*10)/10,y:Math.round(e.y*10)/10,dir:e.dir,alive:e.alive,kind:e.kind,hp:e.hp,maxHp:e.maxHp})),
         bullets:g.bullets.map(b=>({id:b.id,x:Math.round(b.x),y:Math.round(b.y),dir:b.dir,team:b.team,gun:b.gun,pierce:b.pierce})),
@@ -506,6 +507,7 @@
       $('levelTitle').textContent='▸ МІСІЯ '+String(v?.wave||1).padStart(2,'0')+(v?' · '+TERRAINS[v.biome||0]:'');
       $('enemiesStat').textContent=v?.remaining??10;
       $('scoreStat').textContent=(v?.score||0).toLocaleString('uk-UA');
+       $('baseShieldStat').textContent=v?.baseShield>0?Math.ceil(v.baseShield)+' с':'Неактивний';
       const p1=v?.players?.find(p=>p.id===1),p2=v?.players?.find(p=>p.id===2);
       $('player1Hp').textContent=p1?'♥'.repeat(p1.hp)+'♡'.repeat(Math.max(0,3-p1.hp)):'♥♥♥';
       $('player2Hp').textContent=v?.active2&&p2?'♥'.repeat(p2.hp)+'♡'.repeat(Math.max(0,3-p2.hp)):'—';
