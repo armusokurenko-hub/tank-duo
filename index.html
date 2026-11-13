@@ -446,8 +446,9 @@
       seed=recovered._netSeed??seed;seq=recovered._netSeq??seq;
       delete recovered._netSeed;delete recovered._netSeq;
       if(!recovered.players?.[1])return false;
+      const previousHost={...recovered.players[0],id:2};
       recovered.players[0]={...recovered.players[1],id:1,color:localColor};
-      recovered.players[1]=makePlayer(2);
+      recovered.players[1]={...previousHost,alive:false,inv:0,respawn:0};
       recovered.active2=false;
       game=recovered;remoteGame=null;priorGame=null;role='host';friendHere=false;
       phase=game.gameOver?'ended':'playing';
@@ -465,7 +466,7 @@
     function transmit(force=false){
       if(role!=='host'||!connection?.open||!game)return;
       const now=performance.now();if(!force&&now-lastSend<50)return;lastSend=now;
-      try{connection.send({t:'state',state:pack(game),phase});if(force||now-lastBackupSend>1400){connection.send({t:'backup',game:makeBackup()});lastBackupSend=now;}}catch(_){ }
+      try{connection.send({t:'state',state:pack(game),phase});if(force||now-lastBackupSend>800){connection.send({t:'backup',game:makeBackup()});lastBackupSend=now;}}catch(_){ }
     }
     function getView(){
       if(role!=='guest')return game;
@@ -735,7 +736,7 @@
         friendHere=true;
         if(phase==='waiting'||!game){begin(true);}else{
           game.active2=true;
-          const p=game.players[1];p.color=COLORS[2];p.hp=Math.max(1,p.hp);p.alive=true;p.x=tileCenter(PLAYER_X[1]);p.y=tileCenter(18);p.inv=3;
+          const p=game.players[1];p.hp=Math.max(1,p.hp);p.alive=true;p.x=tileCenter(PLAYER_X[1]);p.y=tileCenter(18);p.inv=3;
         }
         try{c.send({t:'welcome',code:roomCode});}catch(_){ }
         transmit(true);toast('Друг підключився! До бою!');refreshUI();
@@ -798,46 +799,82 @@
       if(code.length!==6){$('homeError').textContent='Введи шестисимвольний код кімнати.';return;}
       if(!window.Peer){$('homeError').textContent='Не завантажився PeerJS. Перевір інтернет.';return;}
       leave();role='guest';phase='connecting';roomCode=code;
-      try{sessionStorage.setItem('tankDuoLastRoom',roomCode);}catch(_){ }
-      visibleMenu('menuConnect');$('connectInfo').textContent='Підключаємося до кімнати '+code+'...';$('connectError').textContent='';
-      peer=new Peer(undefined,PEER_OPTIONS);
-      peer.on('open',()=>{
-        if(role!=='guest')return;
-        const c=peer.connect('tankduo-'+code.toLowerCase(),{reliable:true,serialization:'json'});connection=c;joinAttempt=1;
-        joinTimer=setTimeout(()=>{if(role==='guest'&&phase==='connecting'&&connection===c&&!remoteGame){$('connectError').textContent='Пряме з’єднання не встановлено (NAT/фаєрвол). Спробуйте мобільний інтернет: TURN поки не налаштовано.';}},12000);
-        c.on('open',()=>{stopJoinTimer();try{c.send({t:'color',color:localColor});}catch(_){}$('connectError').textContent='';$('connectInfo').textContent='З’єднання встановлено. Очікуємо ігрове поле...';refreshUI();});
-        c.on('data',(data)=>{
+      try{sessionStorage.setItem('tankDuoLastRoom',roomCode);}catch(_){}
+      visibleMenu('menuConnect');$('connectInfo').textContent='Шукаємо кімнату '+code+'...';$('connectError').textContent='';
+      const currentPeer=new Peer(undefined,PEER_OPTIONS);peer=currentPeer;
+      let retries=0,established=false,blocked=false,pendingRetry=false;
+      function retry(delay=1500){
+        if(role!=='guest'||peer!==currentPeer||established||blocked||retries>=18)return;
+        stopJoinTimer();pendingRetry=true;
+        joinTimer=setTimeout(()=>{pendingRetry=false;connectAttempt();},delay);
+      }
+      function connectAttempt(){
+        if(role!=='guest'||peer!==currentPeer||established||blocked)return;
+        if(!currentPeer.open){retry(1200);return;}
+        stopJoinTimer();retries++;
+        const old=connection;connection=null;if(old){try{old.close();}catch(_){}}
+        $('connectInfo').textContent='Повертаємось у '+code+' · спроба '+retries+'/18';
+        if(retries>1)$('connectError').textContent='Очікуємо відновлення кімнати після зміни хоста...';
+        const c=currentPeer.connect('tankduo-'+code.toLowerCase(),{reliable:true,serialization:'json'});connection=c;
+        joinTimer=setTimeout(()=>{
+          if(role==='guest'&&connection===c&&!established){
+            $('connectError').textContent='З’єднання затримується, повторюємо...';
+            if(retries<18)retry(300);
+            else $('connectError').textContent='Не вдалося підключитися. Спробуй ще раз або іншу мережу.';
+          }
+        },6500);
+        c.on('open',()=>{
+          if(connection!==c||role!=='guest')return;
+          stopJoinTimer();$('connectError').textContent='';
+          $('connectInfo').textContent='Канал відкрито. Очікуємо поточну місію...';
+          try{c.send({t:'color',color:localColor});}catch(_){}
+        });
+        c.on('data',data=>{
           if(role!=='guest'||connection!==c||!data||typeof data!=='object')return;
-          if((data.t==='backup'||data.t==='handoff')&&data.game){lastHostStateAt=performance.now();latestBackup=data.game;if(data.t==='handoff')promoteGuest();return;}
-           if(data.t==='full'){$('connectError').textContent='У кімнаті вже грають удвох.';c.close();return;}
-          if(data.t==='welcome'){unlockAudio();
-            phase='playing';visibleMenu(null);toast('Ви приєднались як гравець 2!');refreshUI();
+          if((data.t==='backup'||data.t==='handoff')&&data.game){
+            lastHostStateAt=performance.now();latestBackup=data.game;
+            if(data.t==='handoff')promoteGuest();return;
+          }
+          if(data.t==='full'){blocked=true;stopJoinTimer();$('connectError').textContent='У кімнаті вже грають удвох.';c.close();return;}
+          if(data.t==='welcome'){
+            established=true;stopJoinTimer();unlockAudio();phase='playing';
+            visibleMenu(null);toast('Повернення в кімнату '+code+' успішне!');refreshUI();
           }
           if(data.t==='state'&&data.state&&Array.isArray(data.state.map)){
-             if(remoteGame&&data.state.wave!==remoteGame.wave)playSound('win');
-             if(remoteGame&&data.state.score>remoteGame.score)playSound('hit');
+            if(remoteGame&&data.state.wave!==remoteGame.wave)playSound('win');
+            if(remoteGame&&data.state.score>remoteGame.score)playSound('hit');
             priorGame=remoteGame;remoteGame=data.state;snapshotAt=performance.now();lastHostStateAt=snapshotAt;
             if(data.phase==='ended'||data.state.gameOver){
               phase='ended';$('endIcon').textContent='💥';$('endTitle').textContent='БАЗУ ВТРАЧЕНО';
-              $('endText').textContent=`Хвиля ${remoteGame.wave}. Очки команди: ${remoteGame.score}. Хост може перезапустити гру.`;
+              $('endText').textContent=`Хвиля ${remoteGame.wave}. Командні очки: ${remoteGame.score}. Хост може перезапустити гру.`;
               $('retry').hidden=true;visibleMenu('menuEnd');
             }else if(phase==='ended'){phase='playing';visibleMenu(null);}
             refreshUI();
           }
-          if(data.t==='pong'&&typeof data.sent==='number'){pingMs=Math.max(0,Math.round(performance.now()-data.sent));}
+          if(data.t==='pong'&&typeof data.sent==='number')pingMs=Math.max(0,Math.round(performance.now()-data.sent));
         });
         c.on('close',()=>{
-          if(role==='guest'&&connection===c){
+          if(role!=='guest'||connection!==c)return;
+          if(established){
             if(promoteGuest())return;
-             connection=null;remoteGame=null;priorGame=null;phase='connecting';visibleMenu('menuConnect');$('connectInfo').textContent='З’єднання розірвано.';$('connectError').textContent='Резервного стану немає — створи власну кімнату.';
+            established=false;remoteGame=null;priorGame=null;phase='connecting';
+            visibleMenu('menuConnect');$('connectInfo').textContent='Зв’язок втрачено, повертаємось...';
           }
+          connection=null;if(!blocked)retry(1200);
         });
-        c.on('error',()=>{$('connectError').textContent='Помилка підключення. Перевір код і спробуй ще раз.';});
+        c.on('error',()=>{if(role==='guest'&&connection===c&&!blocked)$('connectError').textContent='Мережева помилка, повторюємо...';});
+      }
+      currentPeer.on('open',()=>{if(role==='guest'&&peer===currentPeer)connectAttempt();});
+      currentPeer.on('error',e=>{
+        if(role!=='guest'||peer!==currentPeer||blocked)return;
+        if(e.type==='peer-unavailable'){
+          $('connectError').textContent='Кімнату ще реєструє новий хост. Автоматично повторюємо...';
+          if(!pendingRetry&&!established)retry(1300);
+        }else $('connectError').textContent='Мережева помилка: '+(e.type||'невідома');
       });
-      peer.on('error',(e)=>{
-        if(role==='guest'){$('connectError').textContent=e.type==='peer-unavailable'?'Кімнату не знайдено на сервері. Хост має дочекатися появи коду і не закривати вкладку.':'Не вдалося з’єднатися. Можливо, мережа блокує пряме P2P-з’єднання.';}
+      currentPeer.on('disconnected',()=>{
+        if(role==='guest'&&peer===currentPeer){try{currentPeer.reconnect();}catch(_){}}
       });
-      peer.on('disconnected',()=>{if(role==='guest'){toast('Відновлюємо сервіс кімнат');try{peer.reconnect();}catch(_){}}});
       refreshUI();
     }
     function frame(timestamp){
@@ -846,7 +883,7 @@
         step(game,dt);
         if(role==='host')transmit();
       }
-      if(role==='guest'&&phase==='playing'&&latestBackup&&lastHostStateAt&&timestamp-lastHostStateAt>3000){promoteGuest();}
+      if(role==='guest'&&phase==='playing'&&latestBackup&&lastHostStateAt&&timestamp-lastHostStateAt>2200){promoteGuest();}
        if(role==='guest'&&phase==='playing'&&connection?.open){
         if(keys.shoot&&timestamp-lastLocalFire>220){lastLocalFire=timestamp;playSound('fire');}
          if(timestamp-lastInputSend>32){lastInputSend=timestamp;try{connection.send({t:'input',keys:{...keys}});}catch(_){ }}
