@@ -252,18 +252,24 @@
     function makePlayer(id){
       return {id,x:tileCenter(PLAYER_X[id-1]),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0,pierce:0,boost:0,armor:0,color:id===1?localColor:COLORS[2],score:0,kills:0};
     }
+    const AIR_TYPES={
+      scout:{hp:1,speed:180,points:180,color:'#81b8dc',bombs:0},
+      bomber:{hp:2,speed:124,points:350,color:'#cf98a4',bombs:1},
+      ace:{hp:3,speed:196,points:600,color:'#d9c179',bombs:2}
+    };
+    function airCount(wave){return wave<4?0:wave<6?1:wave<9?2:wave<12?3:Math.min(5,3+Math.floor((wave-12)/3));}
     function makeGame(coop=false){
       seed=(crypto.getRandomValues(new Uint32Array(1))[0])>>>0;seq=0;
        const level=buildMap(1);
-      return {wave:1, score:0, map:level.map,biome:level.biome, players:[makePlayer(1),makePlayer(2)],enemies:[],bullets:[],fx:[],powerups:[],powerClock:7,freeze:0,baseShield:0,remaining:10,spawnLeft:10,spawnClock:1.3,enemyKills:0,baseAlive:true,active2:coop, won:false, gameOver:false, stageClock:0, totalTime:0};
+      return {wave:1, score:0, map:level.map,biome:level.biome, players:[makePlayer(1),makePlayer(2)],enemies:[],airUnits:[],airBombs:[],airSpawnLeft:0,airClock:5,bullets:[],fx:[],powerups:[],powerClock:7,freeze:0,baseShield:0,remaining:10,spawnLeft:10,spawnClock:1.3,enemyKills:0,baseAlive:true,active2:coop, won:false, gameOver:false, stageClock:0, totalTime:0};
     }
     function begin(coop){
       game=makeGame(coop);remoteGame=null;priorGame=null;phase='playing';visibleMenu(null);refreshUI();
       if(role==='host') transmit(true);
     }
     function nextWave(g){
-      g.wave++;const level=buildMap(g.wave);g.map=level.map;g.biome=level.biome;g.remaining=10+Math.min(26,(g.wave-1)*3);g.spawnLeft=g.remaining;
-      g.enemies=[];g.bullets=[];g.fx=[];g.powerups=[];g.powerClock=5;g.freeze=0;g.baseShield=0;g.spawnClock=1.8;g.stageClock=0;
+      g.wave++;const level=buildMap(g.wave);g.map=level.map;g.biome=level.biome;g.spawnLeft=10+Math.min(26,(g.wave-1)*3);g.airSpawnLeft=airCount(g.wave);g.remaining=g.spawnLeft+g.airSpawnLeft;
+      g.enemies=[];g.airUnits=[];g.airBombs=[];g.airClock=4.5;g.bullets=[];g.fx=[];g.powerups=[];g.powerClock=5;g.freeze=0;g.baseShield=0;g.spawnClock=1.8;g.stageClock=0;
       g.players.forEach(p=>{if(p.hp<=0)p.hp=2;p.alive=true;p.respawn=0;p.inv=3;p.cd=0;p.x=tileCenter(PLAYER_X[p.id-1]);p.y=tileCenter(18);p.dir='up';});
       toast(`Хвиля ${g.wave} — утримайте базу!`);playSound('win');
       if(role==='host')transmit(true);
@@ -326,6 +332,58 @@
        const shooter=g.players.find(p=>p.id===owner);if(shooter){shooter.score=(shooter.score||0)+points;shooter.kills=(shooter.kills||0)+1;}
       burst(g,t.x,t.y,'#f58887',15);playSound('explode');
     }
+    function spawnAircraft(g){
+      const r=rand(),kind=g.wave>=12&&r<.13?'ace':g.wave>=6&&r<Math.min(.65,.2+(g.wave-6)*.055)?'bomber':'scout';
+      const spec=AIR_TYPES[kind],fromLeft=rand()<.5;
+      const y=between(105,HEIGHT-140);
+      g.airUnits.push({id:newId(),kind,x:fromLeft?-40:WIDTH+40,y,hp:spec.hp,maxHp:spec.hp,
+        vx:fromLeft?spec.speed:-spec.speed,dropped:0,dropX:between(WIDTH*.3,WIDTH*.7),alive:true});
+      g.airSpawnLeft--;
+      g.airClock=between(7.5,11.5);
+    }
+    function destroyAircraft(g,plane,owner){
+      if(!plane.alive)return;
+      plane.alive=false;g.remaining=Math.max(0,g.remaining-1);
+      const pts=AIR_TYPES[plane.kind].points;g.score+=pts;g.enemyKills++;
+      const shooter=g.players.find(p=>p.id===owner);
+      if(shooter){shooter.score=(shooter.score||0)+pts;shooter.kills=(shooter.kills||0)+1;}
+      burst(g,plane.x,plane.y,'#ffa567',22);playSound('explode');
+    }
+    function dropAirBomb(g,plane){
+      const baseTarget=g.wave>=8&&rand()<.18;
+      const target=baseTarget?{x:tileCenter(BASE_X),y:tileCenter(18)}:
+        g.players.filter(p=>p.alive&&(p.id===1||g.active2))
+        .sort((a,b)=>Math.abs(a.x-plane.x)-Math.abs(b.x-plane.x))[0];
+      if(!target)return;
+      g.airBombs.push({id:newId(),x:target.x,y:target.y,ttl:1.7,total:1.7,base:baseTarget});
+      plane.dropped++;
+    }
+    function updateAir(g,dt){
+      if(g.airSpawnLeft>0){g.airClock-=dt;
+        if(g.airClock<=0&&g.airUnits.filter(a=>a.alive).length<2)spawnAircraft(g);}
+      for(const a of g.airUnits){
+        if(!a.alive)continue;
+        a.x+=a.vx*dt;
+        const spec=AIR_TYPES[a.kind];
+        if(spec.bombs>0&&a.dropped<spec.bombs&&Math.abs(a.x-a.dropX)<Math.abs(a.vx*dt)+3){
+          dropAirBomb(g,a);a.dropX+=a.vx>0?between(65,110):-between(65,110);
+        }
+        if(a.x< -75||a.x>WIDTH+75){a.alive=false;g.remaining=Math.max(0,g.remaining-1);}
+      }
+      g.airUnits=g.airUnits.filter(a=>a.alive);
+      for(const bomb of g.airBombs){
+        bomb.ttl-=dt;if(bomb.ttl>0)continue;
+        burst(g,bomb.x,bomb.y,'#fcb779',21);playSound('explode');
+        if(bomb.base&&Math.hypot(bomb.x-tileCenter(BASE_X),bomb.y-tileCenter(18))<26){
+          if(g.baseShield>0)burst(g,bomb.x,bomb.y,'#58f7d6',12);
+          else{g.baseAlive=false;gameLost(g);}
+        }else{
+          for(const p of g.players)
+            if(p.alive&&(p.id===1||g.active2)&&Math.hypot(p.x-bomb.x,p.y-bomb.y)<30)killPlayer(g,p);
+        }
+      }
+      g.airBombs=g.airBombs.filter(b=>b.ttl>0);
+    }
     function spawnPowerup(g){
        if(g.powerups.length>=2)return;
        for(let i=0;i<40;i++){
@@ -365,13 +423,14 @@
        g.powerups=g.powerups.filter(p=>p.ttl>0);
       for(const p of g.players){
         if(p.id===2&&!g.active2)continue;
-        if(!p.alive){p.respawn-=dt;if(p.respawn<=0&&p.hp>0){p.x=tileCenter(p.id===1?5:14);p.y=tileCenter(18);p.alive=true;p.inv=2.4;}continue;}
+        if(!p.alive){p.respawn-=dt;if(p.respawn<=0&&p.hp>0){p.x=tileCenter(PLAYER_X[p.id-1]);p.y=tileCenter(18);p.alive=true;p.inv=2.4;}continue;}
         p.cd=Math.max(0,p.cd-dt);p.inv=Math.max(0,p.inv-dt);p.shield=Math.max(0,p.shield-dt);p.rapid=Math.max(0,p.rapid-dt);p.pierce=Math.max(0,p.pierce-dt);p.boost=Math.max(0,p.boost-dt);p.armor=Math.max(0,p.armor-dt);
         const input=p.id===1?keys:remoteKeys, d=activeDirection(input);
         if(d)moveEntity(g,p,d,(p.boost>0?175:112)*dt);
         if(input.shoot&&p.cd===0){spawnBullet(g,p);p.cd=p.rapid>0?.14:.34;}
       }
-      g.spawnClock-=dt;
+      updateAir(g,dt);
+       g.spawnClock-=dt;
       if(g.spawnLeft>0&&g.spawnClock<=0&&g.enemies.filter(e=>e.alive).length<3+Math.min(5,Math.floor(g.wave/3))){
         const positions=SPAWN_X,start=Math.floor(rand()*positions.length);
         for(let i=0;i<positions.length;i++){
@@ -403,7 +462,16 @@
         for(let i=0;i<steps&&b.alive;i++){
           b.x+=dx*speed*dt/steps;b.y+=dy*speed*dt/steps;
           if(b.x<0||b.y<0||b.x>=WIDTH||b.y>=HEIGHT){b.alive=false;break;}
-          const hit=tileAt(g,b.x,b.y);
+          if(b.team!=='enemy'){
+             const plane=g.airUnits.find(a=>a.alive&&Math.abs(a.x-b.x)<22&&Math.abs(a.y-b.y)<18);
+             if(plane){
+               plane.hp=Math.max(0,plane.hp-(b.gun||1));b.alive=false;
+               if(plane.hp===0)destroyAircraft(g,plane,b.owner);
+               else burst(g,plane.x,plane.y,'#aadcf4',5);
+               break;
+             }
+           }
+           const hit=tileAt(g,b.x,b.y);
           if(hit==='B'){b.alive=false;if(g.baseShield>0){burst(g,b.x,b.y,'#58f7d6',18);playSound('hit');break;}g.baseAlive=false;burst(g,b.x,b.y,'#f6cb67',30);gameLost(g);break;}
           if(hit==='#'){writeTile(g,b.x,b.y,'.');if(!b.pierce)b.alive=false;burst(g,b.x,b.y,'#d28c65',5);if(!b.alive)break;}
           if(hit==='S'){if(b.team!=='enemy'&&(b.gun>=3||b.pierce))writeTile(g,b.x,b.y,'.');if(!b.pierce)b.alive=false;burst(g,b.x,b.y,b.pierce?'#ff5eac':'#a6b7cd',4);if(!b.alive)break;}
@@ -421,12 +489,14 @@
       g.bullets=g.bullets.filter(b=>b.alive);g.enemies=g.enemies.filter(e=>e.alive);
       for(const p of g.fx){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=40*dt;p.life-=dt;}g.fx=g.fx.filter(p=>p.life>0);
       if(g.baseAlive&&g.players.filter(p=>p.id===1||g.active2).every(p=>p.hp<=0))gameLost(g);
-      if(!g.gameOver&&g.remaining<=0&&g.spawnLeft<=0)nextWave(g);
+      if(!g.gameOver&&g.remaining<=0&&g.spawnLeft<=0&&g.airSpawnLeft<=0&&g.airBombs.length===0)nextWave(g);
     }
     function pack(g){
       return {wave:g.wave,score:g.score,map:g.map,biome:g.biome,remaining:g.remaining,baseAlive:g.baseAlive,baseShield:g.baseShield||0,active2:g.active2,gameOver:g.gameOver,
         players:g.players.map(p=>({id:p.id,color:p.color,score:p.score||0,kills:p.kills||0,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid,pierce:p.pierce,boost:p.boost,armor:p.armor})),
-        enemies:g.enemies.map(e=>({id:e.id,x:Math.round(e.x*10)/10,y:Math.round(e.y*10)/10,dir:e.dir,alive:e.alive,kind:e.kind,hp:e.hp,maxHp:e.maxHp})),
+        airUnits:(g.airUnits||[]).map(a=>({id:a.id,kind:a.kind,x:a.x,y:a.y,vx:a.vx,hp:a.hp,maxHp:a.maxHp,alive:a.alive})),
+         airBombs:(g.airBombs||[]).map(b=>({id:b.id,x:b.x,y:b.y,ttl:b.ttl,total:b.total,base:b.base})),
+         enemies:g.enemies.map(e=>({id:e.id,x:Math.round(e.x*10)/10,y:Math.round(e.y*10)/10,dir:e.dir,alive:e.alive,kind:e.kind,hp:e.hp,maxHp:e.maxHp})),
         bullets:g.bullets.map(b=>({id:b.id,x:Math.round(b.x),y:Math.round(b.y),dir:b.dir,team:b.team,gun:b.gun,pierce:b.pierce})),
          powerups:g.powerups.map(p=>({id:p.id,x:p.x,y:p.y,type:p.type})),freeze:g.freeze,
         fx:g.fx.slice(-28).map(p=>({x:Math.round(p.x),y:Math.round(p.y),color:p.color,life:p.life}))};
