@@ -86,7 +86,7 @@
             <div class="menu" id="menuHome">
               <span class="menu-icon">🛡️</span><h1>ЗАХИСТИ БАЗУ</h1><p>Танчики, цегляні стіни, ворожі хвилі — як у дитинстві. Об'єднайтесь із другом і не дайте ворогам зруйнувати штаб.</p>
               <button type="button" id="createRoom" class="primary wide">⚡ Створити кімнату для друга</button>
-              <button type="button" id="toggleJoin" class="secondary wide">↗ Приєднатися за кодом</button>
+              <button type="button" id="toggleJoin" class="secondary wide">↗ Приєднатися за кодом</button><button type="button" id="rejoinLastRoom" class="ghost wide" style="margin-top:9px" hidden>↻ Повернутися в останню кімнату</button>
               <button type="button" id="playSolo" class="ghost wide" style="margin-top:10px">Грати самому</button>
               <div id="joinArea" hidden><input id="roomInput" class="room-input" type="text" maxlength="6" placeholder="КОД" autocomplete="off" spellcheck="false" aria-label="Код кімнати"><button id="joinRoom" class="primary wide">Увійти в кімнату</button></div>
               <div class="error" id="homeError" role="status"></div><small>Без встановлення гри та без реєстрації</small>
@@ -458,7 +458,7 @@
       peer=null;
       // Повторно займаємо ТОЙ САМИЙ код кімнати: колишній хост
       // зможе зайти назад другим гравцем, не починаючи нову місію.
-      try{sessionStorage.setItem('tankDuoLastRoom',roomCode);}catch(_){ }
+      try{sessionStorage.setItem('tankDuoLastRoom',roomCode);localStorage.setItem('tankDuoLastRoom',roomCode);}catch(_){ }
       registerRoomPeer(true);
       toast('Тепер ти хост! Код кімнати '+roomCode+' збережено.');
       refreshUI();return true;
@@ -707,7 +707,7 @@
     function leave(){
       if(role==='host'&&connection?.open&&game){try{connection.send({t:'handoff',game:makeBackup()});}catch(_){ }}
        stopJoinTimer();stopHostRegistration();joinAttempt=0;hostReady=false;latestBackup=null;lastHostStateAt=0;try{connection?.close();peer?.destroy();}catch(_){ }
-      connection=null;peer=null;roomCode='';friendHere=false;pingMs=null;role='none';phase='menu';game=null;remoteGame=null;priorGame=null;clearKeys();visibleMenu('menuHome');$('homeError').textContent='';refreshUI();
+      connection=null;peer=null;roomCode='';friendHere=false;pingMs=null;role='none';phase='menu';game=null;remoteGame=null;priorGame=null;clearKeys();visibleMenu('menuHome');$('homeError').textContent='';try{$('rejoinLastRoom').hidden=!(sessionStorage.getItem('tankDuoLastRoom')||localStorage.getItem('tankDuoLastRoom'));}catch(_){}refreshUI();
     }
     function randomCode(){
       const letters='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';const arr=new Uint32Array(6);
@@ -790,7 +790,7 @@
     function createRoom(){
       if(!window.Peer){$('homeError').textContent='Не завантажився PeerJS. Перевір інтернет.';return;}
       leave();role='host';phase='waiting';roomCode=randomCode();
-      try{sessionStorage.setItem('tankDuoLastRoom',roomCode);}catch(_){ }
+      try{sessionStorage.setItem('tankDuoLastRoom',roomCode);localStorage.setItem('tankDuoLastRoom',roomCode);}catch(_){ }
       $('roomCode').textContent='••••••';$('waitError').textContent='Підключаємося до мережі...';visibleMenu('menuWait');
       registerRoomPeer();refreshUI();
     }
@@ -799,7 +799,7 @@
       if(code.length!==6){$('homeError').textContent='Введи шестисимвольний код кімнати.';return;}
       if(!window.Peer){$('homeError').textContent='Не завантажився PeerJS. Перевір інтернет.';return;}
       leave();role='guest';phase='connecting';roomCode=code;
-      try{sessionStorage.setItem('tankDuoLastRoom',roomCode);}catch(_){}
+      try{sessionStorage.setItem('tankDuoLastRoom',roomCode);localStorage.setItem('tankDuoLastRoom',roomCode);}catch(_){}
       visibleMenu('menuConnect');$('connectInfo').textContent='Шукаємо кімнату '+code+'...';$('connectError').textContent='';
       const currentPeer=new Peer(undefined,PEER_OPTIONS);peer=currentPeer;
       let retries=0,established=false,blocked=false,pendingRetry=false;
@@ -922,8 +922,9 @@
     $('restart').addEventListener('click',()=>{if(role==='host'||role==='solo')begin(role==='host'&&friendHere);});
     $('soundBtn').addEventListener('click',()=>{muted=!muted;$('soundBtn').textContent=muted?'♩':'♪';toast(muted?'Звук вимкнено':'Звук увімкнено');if(!muted)playSound('win');});
     let prefill=new URLSearchParams(location.search).get('room');
-    if(!prefill){try{prefill=sessionStorage.getItem('tankDuoLastRoom');}catch(_){ }}
-    if(prefill&&/^[a-z2-9]{6}$/i.test(prefill)){$('roomInput').value=prefill.toUpperCase();$('joinArea').hidden=false;}
+    if(!prefill){try{prefill=sessionStorage.getItem('tankDuoLastRoom')||localStorage.getItem('tankDuoLastRoom');}catch(_){ }}
+    if(prefill&&/^[a-z2-9]{6}$/i.test(prefill)){$('roomInput').value=prefill.toUpperCase();$('joinArea').hidden=false;$('rejoinLastRoom').hidden=false;}
+    $('rejoinLastRoom').addEventListener('click',()=>{try{$('roomInput').value=sessionStorage.getItem('tankDuoLastRoom')||localStorage.getItem('tankDuoLastRoom')||$('roomInput').value;}catch(_){}joinRoom();});
     previewMap=buildMap(1).map;refreshUI();requestAnimationFrame(frame);
   })();
   </script>
