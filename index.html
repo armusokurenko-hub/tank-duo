@@ -62,6 +62,11 @@
     @media(max-width:970px){.layout{grid-template-columns:1fr}.stage{max-width:none}.side{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:650px){.side{grid-template-columns:1fr}}
     @media(max-width:800px){.wrap:fullscreen .layout{grid-template-columns:1fr}.wrap:fullscreen .stage{width:min(100%,calc((100dvh - 180px)*1.3))}}
+
+    .tank-color-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:15px;padding:11px 12px;border:1px solid #37536b;border-radius:12px;background:#0b1929}
+    #tankColor{width:66px;height:36px;padding:3px;border:1px solid #6a8095;border-radius:9px;background:#15273a;cursor:pointer}
+    #tankColor::-webkit-color-swatch-wrapper{padding:0}
+    #tankColor::-webkit-color-swatch{border:0;border-radius:6px}
   </style>
 </head>
 <body>
@@ -114,7 +119,7 @@
           <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Команда</div>
           <div class="player"><div class="player-left"><i class="color-dot p1"></i><span>Гравець 1 <span class="tiny" id="player1Role">(ви)</span></span></div><span class="hearts" id="player1Hp">♥♥♥</span></div>
           <div class="player"><div class="player-left"><i class="color-dot p2"></i><span>Гравець 2 <span class="tiny" id="player2Role">(очікуємо)</span></span></div><span class="hearts" id="player2Hp">—</span></div>
-          <div class="bottom-actions"><button id="goMenu" type="button" class="secondary">⌂ В меню</button><button id="restart" type="button" class="secondary">↺ Перезапуск</button></div>
+          <div class="tank-color-row"><label for="tankColor" class="card-label" style="margin:0">Колір мого танка</label><input id="tankColor" type="color" value="#f3d46e" aria-label="Колір мого танка"></div><div class="bottom-actions"><button id="goMenu" type="button" class="secondary">⌂ В меню</button><button id="restart" type="button" class="secondary">↺ Перезапуск</button></div>
         </div>
         <div class="card"><div class="card-label">Як керувати</div><div class="control-line"><span class="control-keys"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></span><span>рух танка</span></div>
           <div class="control-line"><span class="control-keys"><span class="kbd">↑</span><span class="kbd">←</span><span class="kbd">↓</span><span class="kbd">→</span></span><span>також рух</span></div>
@@ -140,6 +145,21 @@
     const N=20, COLS=26, TILE=32, WIDTH=COLS*TILE, HEIGHT=N*TILE, BASE_X=12, PLAYER_X=[7,19], SPAWN_X=[3,12,22], TAU=Math.PI*2;
     const DIR={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
     const COLORS={1:'#f3d46e',2:'#67cef7',enemy:'#f37783'};
+    function validColor(value){return typeof value==='string'&&/^#[0-9a-fA-F]{6}$/.test(value);}
+    let localColor='#f3d46e';
+    try{const saved=localStorage.getItem('tankDuoColor');if(validColor(saved))localColor=saved;}catch(_){}
+    function updateLocalColor(value){
+      if(!validColor(value))return;
+      localColor=value.toLowerCase();$('tankColor').value=localColor;
+      try{localStorage.setItem('tankDuoColor',localColor);}catch(_){}
+      const selfId=role==='guest'?2:1;
+      if(game?.players?.[selfId-1])game.players[selfId-1].color=localColor;
+      if(role==='guest'&&connection?.open){try{connection.send({t:'color',color:localColor});}catch(_){}}
+      if(role==='host')transmit(true);
+      refreshUI();
+    }
+    $('tankColor').value=localColor;
+    $('tankColor').addEventListener('input',e=>updateLocalColor(e.target.value));
     const keys={up:false,down:false,left:false,right:false,shoot:false,heading:'up'};
     const remoteKeys={up:false,down:false,left:false,right:false,shoot:false,heading:'up'};
     let role='none', phase='menu', game=null, remoteGame=null, priorGame=null;
@@ -226,7 +246,7 @@
       return {map:map.map(row=>row.join('')),biome};
     }
     function makePlayer(id){
-      return {id,x:tileCenter(PLAYER_X[id-1]),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0,pierce:0,boost:0,armor:0};
+      return {id,x:tileCenter(PLAYER_X[id-1]),y:tileCenter(18),dir:'up',hp:3,alive:true,inv:2.8,cd:0,respawn:0,gun:1,shield:0,rapid:0,pierce:0,boost:0,armor:0,color:id===1?localColor:COLORS[2]};
     }
     function makeGame(coop=false){
       seed=(crypto.getRandomValues(new Uint32Array(1))[0])>>>0;seq=0;
@@ -400,7 +420,7 @@
     }
     function pack(g){
       return {wave:g.wave,score:g.score,map:g.map,biome:g.biome,remaining:g.remaining,baseAlive:g.baseAlive,baseShield:g.baseShield||0,active2:g.active2,gameOver:g.gameOver,
-        players:g.players.map(p=>({id:p.id,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid,pierce:p.pierce,boost:p.boost,armor:p.armor})),
+        players:g.players.map(p=>({id:p.id,color:p.color,x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10,dir:p.dir,hp:p.hp,alive:p.alive,inv:p.inv,gun:p.gun,shield:p.shield,rapid:p.rapid,pierce:p.pierce,boost:p.boost,armor:p.armor})),
         enemies:g.enemies.map(e=>({id:e.id,x:Math.round(e.x*10)/10,y:Math.round(e.y*10)/10,dir:e.dir,alive:e.alive,kind:e.kind,hp:e.hp,maxHp:e.maxHp})),
         bullets:g.bullets.map(b=>({id:b.id,x:Math.round(b.x),y:Math.round(b.y),dir:b.dir,team:b.team,gun:b.gun,pierce:b.pierce})),
          powerups:g.powerups.map(p=>({id:p.id,x:p.x,y:p.y,type:p.type})),freeze:g.freeze,
@@ -421,7 +441,7 @@
       seed=recovered._netSeed??seed;seq=recovered._netSeq??seq;
       delete recovered._netSeed;delete recovered._netSeq;
       if(!recovered.players?.[1])return false;
-      recovered.players[0]={...recovered.players[1],id:1};
+      recovered.players[0]={...recovered.players[1],id:1,color:localColor};
       recovered.players[1]=makePlayer(2);
       recovered.active2=false;
       game=recovered;remoteGame=null;priorGame=null;role='host';friendHere=false;
@@ -630,7 +650,7 @@
       const v=getView();background(time,v?.biome||0);
       if(!v){ // Декорація в головному меню.
         const map=previewMap;renderMap(map,time,false);
-        tank({x:tileCenter(PLAYER_X[0]),y:tileCenter(18),dir:'up',alive:true},COLORS[1],time);
+        tank({x:tileCenter(PLAYER_X[0]),y:tileCenter(18),dir:'up',alive:true},localColor,time);
         tank({x:tileCenter(PLAYER_X[1]),y:tileCenter(18),dir:'up',alive:true},COLORS[2],time);
         for(const [x,y] of [[3,2],[12,5],[22,8]])tank({x:tileCenter(x),y:tileCenter(y),dir:'down',alive:true,team:'enemy'},COLORS.enemy,time);
         renderMap(map,time,true);return;
@@ -638,7 +658,7 @@
       renderMap(v.map,time,false);
       for(const p of v.powerups||[])drawPowerup(p,time);
        for(const b of v.bullets||[])drawBullet(b);
-      for(const p of v.players||[])if(p.id===1||v.active2)tank(p,COLORS[p.id],time);
+      for(const p of v.players||[])if(p.id===1||v.active2)tank(p,p.color||COLORS[p.id],time);
       for(const e of v.enemies||[])tank(e,ENEMY_CLASSES[e.kind||'basic'].color,time);
       for(const p of v.fx||[]){ctx.globalAlpha=limit(p.life*3,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-3,p.y-3,6,6);}ctx.globalAlpha=1;
       renderMap(v.map,time,true);
@@ -664,6 +684,8 @@
       $('player1Hp').textContent=p1?'♥'.repeat(p1.hp)+'♡'.repeat(Math.max(0,3-p1.hp)):'♥♥♥';
       $('player2Hp').textContent=v?.active2&&p2?'♥'.repeat(p2.hp)+'♡'.repeat(Math.max(0,3-p2.hp)):'—';
       $('player1Role').textContent=role==='guest'?'(друг)':'(ви)';
+       document.querySelector('.color-dot.p1').style.backgroundColor=p1?.color||COLORS[1];
+       document.querySelector('.color-dot.p2').style.backgroundColor=p2?.color||COLORS[2];
       $('player2Role').textContent=role==='guest'?'(ви)':v?.active2?'(друг)':'(очікуємо)';
        for(const [id,p] of [['player1Role',p1],['player2Role',p2]])if(p&&(p.id===1||v?.active2))$(id).textContent+=` · гармата ${p.gun||1}${p.shield>0?' 🛡':''}${p.rapid>0?' ⚡':''}${p.pierce>0?' ✦':''}${p.boost>0?' ➤':''}${p.armor>0?' ⬡':''}`;
       $('restart').disabled=role==='guest'||role==='none'||phase==='connecting'||phase==='waiting';
@@ -706,7 +728,7 @@
         friendHere=true;
         if(phase==='waiting'||!game){begin(true);}else{
           game.active2=true;
-          const p=game.players[1];p.hp=Math.max(1,p.hp);p.alive=true;p.x=tileCenter(PLAYER_X[1]);p.y=tileCenter(18);p.inv=3;
+          const p=game.players[1];p.color=COLORS[2];p.hp=Math.max(1,p.hp);p.alive=true;p.x=tileCenter(PLAYER_X[1]);p.y=tileCenter(18);p.inv=3;
         }
         try{c.send({t:'welcome',code:roomCode});}catch(_){ }
         transmit(true);toast('Друг підключився! До бою!');refreshUI();
@@ -715,7 +737,8 @@
         if(role!=='host'||connection!==c||!data||typeof data!=='object')return;
         if(data.t==='input'&&data.keys){for(const k of ['up','down','left','right','shoot'])remoteKeys[k]=data.keys[k]===true;
           remoteKeys.heading=DIR[data.keys.heading]?data.keys.heading:'up';}
-        if(data.t==='ping'&&Number.isFinite(data.sent))try{c.send({t:'pong',sent:data.sent});}catch(_){ }
+        if(data.t==='color'&&validColor(data.color)){if(game?.players?.[1])game.players[1].color=data.color;transmit(true);}
+         if(data.t==='ping'&&Number.isFinite(data.sent))try{c.send({t:'pong',sent:data.sent});}catch(_){ }
       });
       c.on('close',()=>{
         if(connection!==c)return;
@@ -775,7 +798,7 @@
         if(role!=='guest')return;
         const c=peer.connect('tankduo-'+code.toLowerCase(),{reliable:true,serialization:'json'});connection=c;joinAttempt=1;
         joinTimer=setTimeout(()=>{if(role==='guest'&&phase==='connecting'&&connection===c&&!remoteGame){$('connectError').textContent='Пряме з’єднання не встановлено (NAT/фаєрвол). Спробуйте мобільний інтернет: TURN поки не налаштовано.';}},12000);
-        c.on('open',()=>{stopJoinTimer();$('connectError').textContent='';$('connectInfo').textContent='З’єднання встановлено. Очікуємо ігрове поле...';refreshUI();});
+        c.on('open',()=>{stopJoinTimer();try{c.send({t:'color',color:localColor});}catch(_){}$('connectError').textContent='';$('connectInfo').textContent='З’єднання встановлено. Очікуємо ігрове поле...';refreshUI();});
         c.on('data',(data)=>{
           if(role!=='guest'||connection!==c||!data||typeof data!=='object')return;
           if((data.t==='backup'||data.t==='handoff')&&data.game){lastHostStateAt=performance.now();latestBackup=data.game;if(data.t==='handoff')promoteGuest();return;}
