@@ -464,6 +464,83 @@
       }
       g.friendlyAir=g.friendlyAir.filter(a=>a.alive);
     }
+    const FLIGHT_SECONDS={airFighter:17,airStriker:15,airBomber:13};
+    function startPlayerFlight(g,p,type){
+      p.flight={type,x:p.x,y:p.y,dir:p.dir,time:FLIGHT_SECONDS[type],cd:0,color:FRIEND_AIR[type].color};
+      p.inv=Math.max(p.inv,1);
+      toast('АВІАРЕЖИМ: WASD — ПОЛІТ, SPACE — АТАКА');
+    }
+    function endPlayerFlight(g,p){
+      if(!p.flight)return;
+      p.flight=null;p.inv=Math.max(p.inv,2.5);
+      burst(g,p.x,p.y,p.color||'#80ddff',10);
+    }
+    function flightTarget(f,targets,reach,spread){
+      const [dx,dy]=DIR[f.dir]||DIR.up;
+      return targets.filter(t=>t.alive).map(t=>{
+        const ox=t.x-f.x,oy=t.y-f.y;
+        return {t,forward:ox*dx+oy*dy,across:Math.abs(ox*dy-oy*dx)};
+      }).filter(q=>q.forward>=-15&&q.forward<=reach&&q.across<spread)
+        .sort((a,b)=>a.forward-b.forward||a.across-b.across)[0]?.t||null;
+    }
+    function flightShoot(g,p){
+      const f=p.flight;if(!f||f.cd>0)return;
+      if(f.type==='airFighter'){
+        const target=flightTarget(f,g.airUnits,200,75)||flightTarget(f,g.enemies,175,52);
+        if(target){
+          if(g.airUnits.includes(target)){
+            target.hp=Math.max(0,target.hp-2);
+            if(target.hp===0)destroyAircraft(g,target,p.id);
+          }else{
+            target.hp=Math.max(0,target.hp-1);
+            if(target.hp===0)enemyDeath(g,target,p.id);
+          }
+          burst(g,target.x,target.y,'#6bdcff',12);
+        }else{
+          const [dx,dy]=DIR[f.dir];burst(g,limit(f.x+dx*95,15,WIDTH-15),limit(f.y+dy*95,15,HEIGHT-15),'#77dfff',5);
+        }
+        f.cd=.26;
+      }else if(f.type==='airStriker'){
+        const target=flightTarget(f,g.enemies,170,65);
+        if(target){
+          target.hp=Math.max(0,target.hp-2);
+          if(target.hp===0)enemyDeath(g,target,p.id);
+          burst(g,target.x,target.y,'#98ffc0',14);
+        }else{
+          const targetAir=flightTarget(f,g.airUnits,160,55);
+          if(targetAir){
+            targetAir.hp=Math.max(0,targetAir.hp-1);
+            if(targetAir.hp===0)destroyAircraft(g,targetAir,p.id);
+            burst(g,targetAir.x,targetAir.y,'#98ffc0',9);
+          }
+        }
+        f.cd=.48;
+      }else{
+        const radius=78;
+        burst(g,f.x,f.y,'#ffe0a0',27);
+        for(const enemy of g.enemies){
+          if(!enemy.alive||Math.hypot(enemy.x-f.x,enemy.y-f.y)>radius)continue;
+          enemy.hp=Math.max(0,enemy.hp-3);
+          if(enemy.hp===0)enemyDeath(g,enemy,p.id);
+          else burst(g,enemy.x,enemy.y,'#ffe0a0',8);
+        }
+        f.cd=1.05;
+      }
+      playSound('fire');
+    }
+    function updatePlayerFlight(g,p,input,dt){
+      const f=p.flight;if(!f)return;
+      f.time-=dt;f.cd=Math.max(0,f.cd-dt);
+      const direction=activeDirection(input);
+      if(direction){
+        const [dx,dy]=DIR[direction],speed=f.type==='airFighter'?215:f.type==='airStriker'?175:145;
+        f.x=limit(f.x+dx*speed*dt,24,WIDTH-24);
+        f.y=limit(f.y+dy*speed*dt,24,HEIGHT-24);
+        f.dir=direction;
+      }
+      if(input.shoot)flightShoot(g,p);
+      if(f.time<=0)endPlayerFlight(g,p);
+    }
     function spawnPowerup(g){
        if(g.powerups.length>=2)return;
        for(let i=0;i<40;i++){
