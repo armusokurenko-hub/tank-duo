@@ -118,7 +118,7 @@
       <aside class="side">
         <div class="card"><div class="card-label">Поточна місія</div>
           <div class="stat-row"><span class="stat-name">Хвиля</span><span class="stat-value" id="waveStat">01</span></div>
-          <div class="stat-row"><span class="stat-name">Ворогів залишилось</span><span class="stat-value" id="enemiesStat">12</span></div>
+          <div class="stat-row"><span class="stat-name">Ворогів залишилось</span><span class="stat-value" id="enemiesStat">12</span></div><div class="stat-row"><span class="stat-name">Літаків у небі</span><span class="stat-value" id="airStat">0</span></div>
           <div class="stat-row"><span class="stat-name">Очки команди</span><span class="stat-value" id="scoreStat">0</span></div><div class="stat-row"><span class="stat-name">Захист бази</span><strong class="stat-value" id="baseShieldStat" style="color:#58f7d6;font-size:15px">Неактивний</strong></div>
           <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Команда</div>
           <div class="player"><div class="player-left"><i class="color-dot p1"></i><span>Гравець 1 <span class="tiny" id="player1Role">(ви)</span></span></div><span class="player-metrics"><strong class="player-score" id="player1Score">0 очок</strong><span class="hearts" id="player1Hp">♥♥♥</span></span></div>
@@ -128,7 +128,7 @@
         <div class="card"><div class="card-label">Як керувати</div><div class="control-line"><span class="control-keys"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></span><span>рух танка</span></div>
           <div class="control-line"><span class="control-keys"><span class="kbd">↑</span><span class="kbd">←</span><span class="kbd">↓</span><span class="kbd">→</span></span><span>також рух</span></div>
           <div class="control-line"><span class="kbd" style="min-width:72px">SPACE</span><span>постріл</span></div>
-          <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Перешкоди</div><div class="legend"><span>🧱 Цегла — ламається</span><span>⬜ Сталь — міцна</span><span>💧 Вода — не проїхати</span><span>🌿 Кущі — маскування</span></div><div class="separator"></div><div class="card-label" style="margin-bottom:7px">Вороги та бонуси</div><div class="legend"><span>🟡 Легкі — швидкі</span><span>🟣 Важкі — броньовані</span><span>🔴 Стрільці — часті постріли</span><span>🩷 Елітні — з 9 хвилі</span><span>➤ Турбо — швидший рух</span><span>⬡ Броня — поглинає удар</span><span>⛨ Щит бази — 20 секунд</span></div>
+          <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Перешкоди</div><div class="legend"><span>🧱 Цегла — ламається</span><span>⬜ Сталь — міцна</span><span>💧 Вода — не проїхати</span><span>🌿 Кущі — маскування</span></div><div class="separator"></div><div class="card-label" style="margin-bottom:7px">Вороги та бонуси</div><div class="legend"><span>🟡 Легкі — швидкі</span><span>🟣 Важкі — броньовані</span><span>🔴 Стрільці — часті постріли</span><span>🩷 Елітні — з 9 хвилі</span><span>✈️ Літаки — з 4 хвилі</span><span>💣 Бомбардувальники — з 6-ї</span><span>🛩️ Аси — з 12-ї</span><span>➤ Турбо — швидший рух</span><span>⬡ Броня — поглинає удар</span><span>⛨ Щит бази — 20 секунд</span></div>
         </div>
         <div class="card"><div class="card-label">Гра з другом</div><div class="note" id="helpText">Один створює кімнату, копіює посилання і надсилає другу. Друг відкриває його, вводить код — і ви граєте разом через інтернет.</div><div class="stat-row" style="margin-bottom:0"><span class="stat-name">Мережа</span><strong style="color:#a6e8b3" id="netStat">Не підключена</strong></div></div>
       </aside>
@@ -676,6 +676,55 @@
       if(t.rapid>0){ctx.strokeStyle='#ffb259';ctx.lineWidth=2;ctx.strokeRect(t.x-18,t.y-18,36,36);}
       if(t.inv>0){ctx.strokeStyle='#bbf4ff99';ctx.lineWidth=2;ctx.beginPath();ctx.arc(t.x,t.y,19,0,TAU);ctx.stroke();}
     }
+    function drawAircraft(a,time){
+      const kind=AIR_TYPES[a.kind]||AIR_TYPES.scout;
+      ctx.save();ctx.translate(a.x,a.y);
+      const rot=a.vx>0?Math.PI/2:-Math.PI/2;
+      const size=a.kind==='bomber'?1.22:a.kind==='ace'?1.06:.9;
+      ctx.save();ctx.translate(14,19);ctx.rotate(rot);ctx.scale(size*1.08,size*1.08);
+      ctx.fillStyle='#040c1a66';ctx.beginPath();ctx.ellipse(0,2,34,13,0,0,TAU);ctx.fill();ctx.restore();
+      ctx.rotate(rot);ctx.scale(size,size);
+      const hull=ctx.createLinearGradient(-13,-16,15,20);
+      hull.addColorStop(0,'#f6fbff');hull.addColorStop(.22,kind.color);hull.addColorStop(1,'#344c62');
+      ctx.shadowColor='#0008';ctx.shadowBlur=8;ctx.shadowOffsetY=3;
+      ctx.fillStyle='#192c3e';ctx.beginPath();
+      ctx.moveTo(0,-18);ctx.lineTo(-33,7);ctx.lineTo(-30,14);ctx.lineTo(-7,9);
+      ctx.lineTo(-7,19);ctx.lineTo(-17,25);ctx.lineTo(-14,28);
+      ctx.lineTo(0,23);ctx.lineTo(14,28);ctx.lineTo(17,25);ctx.lineTo(7,19);
+      ctx.lineTo(7,9);ctx.lineTo(30,14);ctx.lineTo(33,7);ctx.closePath();ctx.fill();
+      ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+      ctx.fillStyle=hull;ctx.beginPath();
+      ctx.moveTo(0,-22);ctx.lineTo(-30,9);ctx.lineTo(-28,13);ctx.lineTo(-6,6);
+      ctx.lineTo(-6,19);ctx.lineTo(-16,23);ctx.lineTo(-14,26);
+      ctx.lineTo(0,21);ctx.lineTo(14,26);ctx.lineTo(16,23);ctx.lineTo(6,19);
+      ctx.lineTo(6,6);ctx.lineTo(28,13);ctx.lineTo(30,9);ctx.closePath();ctx.fill();
+      roundBox(-5,-16,10,35,5,'#3b556c');
+      roundBox(-3.7,-16,7.4,27,3,hull);
+      roundBox(-4,-11,8,13,4,'#0a283f');
+      roundBox(-2.3,-9,4.6,8,2,'#87d6e7');
+      ctx.strokeStyle='#ffffff7d';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(-27,9);ctx.lineTo(-5,2);ctx.moveTo(27,9);ctx.lineTo(5,2);ctx.stroke();
+      if(a.kind==='bomber'){roundBox(-20,8,9,5,2,'#293e4e');roundBox(11,8,9,5,2,'#293e4e');}
+      if(a.kind==='ace'){ctx.fillStyle='#ffcd75';ctx.fillRect(-3,17,6,3);}
+      ctx.restore();
+      if(a.maxHp>1){
+        roundBox(a.x-18,a.y+33,36,5,2,'#09182c');
+        roundBox(a.x-17,a.y+34,34*Math.max(0,a.hp/a.maxHp),3,1,'#9cdff1');
+      }
+    }
+    function drawAirBomb(b,time){
+      const ratio=Math.max(0,b.ttl/b.total),blink=Math.sin(time*16)>0;
+      ctx.save();ctx.translate(b.x,b.y);
+      ctx.fillStyle=blink?'#fa745c44':'#ffbc6844';
+      ctx.beginPath();ctx.arc(0,0,24+(1-ratio)*5,0,TAU);ctx.fill();
+      ctx.strokeStyle=b.base?'#fa716f':'#ffd17a';ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.arc(0,0,19+ratio*5,0,TAU);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-11,0);ctx.lineTo(11,0);ctx.moveTo(0,-11);ctx.lineTo(0,11);ctx.stroke();
+      const altitude=ratio*45;ctx.fillStyle='#111d2b';ctx.beginPath();
+      ctx.ellipse(-8,-altitude,6,10,0,0,TAU);ctx.fill();
+      ctx.fillStyle='#f4a75b';ctx.beginPath();ctx.arc(-8,-altitude-5,3,0,TAU);ctx.fill();
+      ctx.restore();
+    }
     function drawBullet(b){
       const power=b.gun||1,enemy=b.team==='enemy';
       const color=enemy?'#ff7388':b.pierce?'#ff58c1':power>=3?'#ffae6a':'#ffe69d';
@@ -729,15 +778,18 @@
         tank({x:tileCenter(PLAYER_X[0]),y:tileCenter(18),dir:'up',alive:true},localColor,time);
         tank({x:tileCenter(PLAYER_X[1]),y:tileCenter(18),dir:'up',alive:true},COLORS[2],time);
         for(const [x,y] of [[3,2],[12,5],[22,8]])tank({x:tileCenter(x),y:tileCenter(y),dir:'down',alive:true,team:'enemy'},COLORS.enemy,time);
+         drawAircraft({x:tileCenter(19),y:tileCenter(7),vx:-180,kind:'scout',hp:1,maxHp:1},time);
         renderMap(map,time,true);return;
       }
       renderMap(v.map,time,false);
+       for(const b of v.airBombs||[])drawAirBomb(b,time);
       for(const p of v.powerups||[])drawPowerup(p,time);
        for(const b of v.bullets||[])drawBullet(b);
       for(const p of v.players||[])if(p.id===1||v.active2)tank(p,p.color||COLORS[p.id],time);
       for(const e of v.enemies||[])tank(e,ENEMY_CLASSES[e.kind||'basic'].color,time);
       for(const p of v.fx||[]){ctx.globalAlpha=limit(p.life*3,0,1);ctx.fillStyle=p.color;ctx.fillRect(p.x-3,p.y-3,6,6);}ctx.globalAlpha=1;
       renderMap(v.map,time,true);
+       for(const a of v.airUnits||[])drawAircraft(a,time);
        drawBaseShield(v,time);
       if(!v.baseAlive){const x=tileCenter(BASE_X),y=tileCenter(18);ctx.fillStyle='#9b3a31';ctx.fillRect(x-12,y-10,25,22);ctx.fillStyle='#2a1b23';ctx.fillRect(x-7,y-4,15,15);}
     }
@@ -754,6 +806,7 @@
       $('waveStat').textContent=String(v?.wave||1).padStart(2,'0');
       $('levelTitle').textContent='▸ МІСІЯ '+String(v?.wave||1).padStart(2,'0')+(v?' · '+TERRAINS[v.biome||0]:'');
       $('enemiesStat').textContent=v?.remaining??10;
+       $('airStat').textContent=v?.airUnits?.length||0;
       $('scoreStat').textContent=(v?.score||0).toLocaleString('uk-UA');
        $('baseShieldStat').textContent=v?.baseShield>0?Math.ceil(v.baseShield)+' с':'Неактивний';
       const p1=v?.players?.find(p=>p.id===1),p2=v?.players?.find(p=>p.id===2);
