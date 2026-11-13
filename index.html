@@ -127,8 +127,8 @@
         </div>
         <div class="card"><div class="card-label">Як керувати</div><div class="control-line"><span class="control-keys"><span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span></span><span>рух танка</span></div>
           <div class="control-line"><span class="control-keys"><span class="kbd">↑</span><span class="kbd">←</span><span class="kbd">↓</span><span class="kbd">→</span></span><span>також рух</span></div>
-          <div class="control-line"><span class="kbd" style="min-width:72px">SPACE</span><span>постріл</span></div>
-          <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Перешкоди</div><div class="legend"><span>🧱 Цегла — ламається</span><span>⬜ Сталь — міцна</span><span>💧 Вода — не проїхати</span><span>🌿 Кущі — маскування</span></div><div class="separator"></div><div class="card-label" style="margin-bottom:7px">Вороги та бонуси</div><div class="legend"><span>🟡 Легкі — швидкі</span><span>🟣 Важкі — броньовані</span><span>🔴 Стрільці — часті постріли</span><span>🩷 Елітні — з 9 хвилі</span><span>✈️ Літаки — з 4 хвилі</span><span>💣 Бомбардувальники — з 6-ї</span><span>🛩️ Аси — з 12-ї</span><span>➤ Турбо — швидший рух</span><span>⬡ Броня — поглинає удар</span><span>⛨ Щит бази — 20 секунд</span><span>✈ Винищувач — керуєш і стріляєш</span><span>➤ Штурмовик — керуєш і атакуєш</span><span>✦ Бомбардувальник — керуєш і скидаєш бомби</span><span>WASD / стрілки — політ; SPACE — атака</span><span>У повітрі танк невразливий, потім повертаєшся назад</span></div>
+          <div class="control-line"><span class="kbd" style="min-width:72px">SPACE</span><span>постріл / авіаудар</span></div><div class="control-line"><span class="kbd" style="min-width:72px">R</span><span>повернутися з літака в танк</span></div>
+          <div class="separator"></div><div class="card-label" style="margin-bottom:7px">Перешкоди</div><div class="legend"><span>🧱 Цегла — ламається</span><span>⬜ Сталь — міцна</span><span>💧 Вода — не проїхати</span><span>🌿 Кущі — маскування</span></div><div class="separator"></div><div class="card-label" style="margin-bottom:7px">Вороги та бонуси</div><div class="legend"><span>🟡 Легкі — швидкі</span><span>🟣 Важкі — броньовані</span><span>🔴 Стрільці — часті постріли</span><span>🩷 Елітні — з 9 хвилі</span><span>✈️ Літаки — з 4 хвилі</span><span>💣 Бомбардувальники — з 6-ї</span><span>🛩️ Аси — з 12-ї</span><span>➤ Турбо — швидший рух</span><span>⬡ Броня — поглинає удар</span><span>⛨ Щит бази — 20 секунд</span><span>✈ Винищувач — керуєш і стріляєш</span><span>➤ Штурмовик — керуєш і атакуєш</span><span>✦ Бомбардувальник — керуєш і скидаєш бомби</span><span>WASD / стрілки — політ; SPACE — атака; R — повернутися в танк</span><span>У повітрі танк невразливий, потім повертаєшся назад</span></div>
         </div>
         <div class="card"><div class="card-label">Гра з другом</div><div class="note" id="helpText">Один створює кімнату, копіює посилання і надсилає другу. Друг відкриває його, вводить код — і ви граєте разом через інтернет.</div><div class="stat-row" style="margin-bottom:0"><span class="stat-name">Мережа</span><strong style="color:#a6e8b3" id="netStat">Не підключена</strong></div></div>
       </aside>
@@ -164,8 +164,8 @@
     }
     $('tankColor').value=localColor;
     $('tankColor').addEventListener('input',e=>updateLocalColor(e.target.value));
-    const keys={up:false,down:false,left:false,right:false,shoot:false,heading:'up'};
-    const remoteKeys={up:false,down:false,left:false,right:false,shoot:false,heading:'up'};
+    const keys={up:false,down:false,left:false,right:false,shoot:false,land:false,heading:'up'};
+    const remoteKeys={up:false,down:false,left:false,right:false,shoot:false,land:false,heading:'up'};
     let role='none', phase='menu', game=null, remoteGame=null, priorGame=null;
     let snapshotAt=0, peer=null, connection=null, roomCode='', friendHere=false;
     let muted=false, sound=null, pendingToast=0, lastUI=0, lastSend=0, lastInputSend=0, lastPing=0, pingMs=null, lastTick=performance.now();
@@ -539,7 +539,7 @@
         f.dir=direction;
       }
       if(input.shoot)flightShoot(g,p);
-      if(f.time<=0)endPlayerFlight(g,p);
+      if(input.land||f.time<=0)endPlayerFlight(g,p);
     }
     function spawnPowerup(g){
        if(g.powerups.length>=2)return;
@@ -994,7 +994,7 @@
       $('netStat').textContent=role==='host'?(friendHere?'Підключено':hostReady?'Кімната відкрита':'Реєстрація...'):role==='guest'?(pingMs!==null?`${pingMs} мс`:'Підключено'):role==='solo'?'Не потрібна':'Не підключена';
       $('helpText').textContent=role==='host'&&roomCode?`Код кімнати: ${roomCode}. Друг може приєднатися під час гри. Поки вкладку відкрито, кімната активна.`:'Один створює кімнату, копіює посилання і надсилає другу. Друг відкриває його, вводить код — і ви граєте разом через інтернет.';
     }
-    function clearKeys(){for(const d of ['up','down','left','right','shoot']){keys[d]=false;remoteKeys[d]=false;}document.querySelectorAll('.touch-pad .pressed').forEach(el=>el.classList.remove('pressed'));}
+    function clearKeys(){for(const d of ['up','down','left','right','shoot','land']){keys[d]=false;remoteKeys[d]=false;}document.querySelectorAll('.touch-pad .pressed').forEach(el=>el.classList.remove('pressed'));}
     function leave(){
       if(role==='host'&&connection?.open&&game){try{connection.send({t:'handoff',game:makeBackup()});}catch(_){ }}
        stopJoinTimer();stopHostRegistration();joinAttempt=0;hostReady=false;latestBackup=null;lastHostStateAt=0;try{connection?.close();peer?.destroy();}catch(_){ }
@@ -1034,7 +1034,7 @@
       });
       c.on('data',(data)=>{
         if(role!=='host'||connection!==c||!data||typeof data!=='object')return;
-        if(data.t==='input'&&data.keys){for(const k of ['up','down','left','right','shoot'])remoteKeys[k]=data.keys[k]===true;
+        if(data.t==='input'&&data.keys){for(const k of ['up','down','left','right','shoot','land'])remoteKeys[k]=data.keys[k]===true;
           remoteKeys.heading=DIR[data.keys.heading]?data.keys.heading:'up';}
         if(data.t==='color'&&validColor(data.color)){if(game?.players?.[1])game.players[1].color=data.color;transmit(true);}
          if(data.t==='ping'&&Number.isFinite(data.sent))try{c.send({t:'pong',sent:data.sent});}catch(_){ }
@@ -1042,7 +1042,7 @@
       c.on('close',()=>{
         if(connection!==c)return;
         connection=null;friendHere=false;
-         for(const k of ['up','down','left','right','shoot'])remoteKeys[k]=false;
+         for(const k of ['up','down','left','right','shoot','land'])remoteKeys[k]=false;
         if(game)game.active2=false;
         toast('Друг відключився. Можна продовжити одному.');refreshUI();
       });
@@ -1187,11 +1187,11 @@
     const KEYMAP={KeyW:'up',KeyA:'left',KeyS:'down',KeyD:'right',ArrowUp:'up',ArrowLeft:'left',ArrowDown:'down',ArrowRight:'right',Space:'shoot'};
     document.addEventListener('keydown',(e)=>{
       if(e.target instanceof HTMLInputElement)return;
-      const d=KEYMAP[e.code];if(!d)return;
+      const d=KEYMAP[e.code];if(e.code==='KeyR'&&phase==='playing'){keys.land=true;e.preventDefault();return;}if(!d)return;
       if(['playing'].includes(phase)&&['guest','host','solo'].includes(role)){e.preventDefault();unlockAudio();}
       keys[d]=true;if(d!=='shoot')keys.heading=d;
     });
-    document.addEventListener('keyup',(e)=>{const d=KEYMAP[e.code];if(d){keys[d]=false;if(phase==='playing')e.preventDefault();}});
+    document.addEventListener('keyup',(e)=>{const d=KEYMAP[e.code];if(e.code==='KeyR'){keys.land=false;return;}if(d){keys[d]=false;if(phase==='playing')e.preventDefault();}});
     window.addEventListener('blur',clearKeys);
     document.querySelectorAll('.touch-pad button[data-key]').forEach(btn=>{
       const d=btn.dataset.key;
